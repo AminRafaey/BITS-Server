@@ -18,13 +18,13 @@ router.post('/', async (req, res) => {
       });
 
     let templateInDb = await Template.findOne({
-      name: template.name,
+      title: template.title,
     });
     if (templateInDb)
       return res.status(400).send({
         field: {
-          name: 'Name',
-          message: 'A Template with this name already Exist',
+          name: 'title',
+          message: 'A Template with this title already Exist',
         },
       });
 

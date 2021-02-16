@@ -2,10 +2,8 @@ const mongoose = require('mongoose');
 const Joi = require('joi');
 
 const schema = new mongoose.Schema({
-  name: {
+  title: {
     type: String,
-    min: 2,
-    max: 60,
     required: true,
     unique: true,
   },
@@ -15,23 +13,27 @@ const schema = new mongoose.Schema({
     required: true,
   },
 
-  status: {
+  mediaType: {
     type: String,
-    enum: ['Default', 'Not_Default'],
-    default: 'Not_Default',
+    enum: ['image', 'video', 'pdf'],
   },
 
-  date: {
+  media: {
+    type: String,
+  },
+
+  createdAt: {
     type: Date,
-    default: new Date(),
+    default: Date(),
   },
 });
 
 function validateTemplate(template) {
   const schema = Joi.object({
-    name: Joi.string().min(2).max(60).required(),
+    title: Joi.string().required(),
     content: Joi.string().required(),
-    status: Joi.string().valid('Default', 'Not_Default').optional(),
+    mediaType: Joi.string().valid('image', 'video', 'pdf').optional(),
+    media: Joi.string().optional(),
   });
   return schema.validate(template);
 }

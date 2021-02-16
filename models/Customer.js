@@ -26,6 +26,21 @@ const schema = new mongoose.Schema({
     type: Date,
     default: Date(),
   },
+  clientID: {
+    type: String,
+  },
+  serverToken: {
+    type: String,
+  },
+  clientToken: {
+    type: String,
+  },
+  encKey: {
+    type: String,
+  },
+  macKey: {
+    type: String,
+  },
 });
 
 function validateCustomer(customer) {

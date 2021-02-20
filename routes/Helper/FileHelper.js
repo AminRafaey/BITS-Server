@@ -1,18 +1,19 @@
 const fs = require('fs');
 
 function renameFile(file, newName) {
-  const destPath = file.destination + '/' + newName;
-  fs.rename(file.path, destPath, (err) => {
-    if (err) console.log(newName + ' file rename failed');
-    else console.log(newName + ' file renamed');
-  });
+  try {
+    const destPath = file.destination + '/' + newName;
+    fs.renameSync(file.path, destPath);
+  } catch (err) {
+    console.log(newName + ' file rename failed');
+  }
 }
-function deleteFile(files) {
-  files.forEach((file) => {
-    fs.unlink(file.path, function (err) {
-      if (!err) console.log('File deleted : ' + file.originalname);
-    });
-  });
+function deleteFile(path) {
+  try {
+    fs.unlinkSync(path);
+  } catch (err) {
+    console.log(err + ' file delete failed');
+  }
 }
 
 exports.renameFile = renameFile;

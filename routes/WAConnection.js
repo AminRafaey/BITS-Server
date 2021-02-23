@@ -15,8 +15,6 @@ router.get('/', async (req, res) => {
   async function connectToWhatsApp() {
     const conn = new WAConnection();
 
-    conn.connectOptions.waitForChats = false;
-    conn.connectOptions.waitOnlyForLastMessage = false;
     conn.connectOptions.maxIdleTimeMs = 2000;
     conn.connectOptions.maxRetries = 3;
 

@@ -3,7 +3,9 @@ const { WAConnection } = require('@adiwajshing/baileys');
 const { Customer } = require('../models/Customer');
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/:userId', async (req, res) => {
+  const { userId } = req.params;
+  console.log(userId);
   const headers = {
     'Content-Type': 'text/event-stream',
     Connection: 'keep-alive',
@@ -25,18 +27,12 @@ router.get('/', async (req, res) => {
     conn.connectOptions.maxIdleTimeMs = 15000;
     conn.connectOptions.maxRetries = 3;
 
-    conn.on('chats-received', async () => {
-      const unread = await conn.loadAllUnreadMessages();
-      res.write(
-        `data: ${JSON.stringify({
-          chats: conn.chats.filter(
-            (c) => c.jid.split('@')[1] === 's.whatsapp.net'
-          ),
-          unread: unread,
-        })}\n\n`
-      );
-      res.write(`data: ${JSON.stringify({ data: 'success' })}\n\n`);
-    });
+    const messages = await conn.loadMessages(userId, 25);
+    console.log(messages);
+    // res.write(
+    //     `data: ${JSON.stringify({ data:messages })}\n\n`
+    //   );
+    // res.write(`data: ${JSON.stringify({ data: 'success' })}\n\n`);
 
     await conn.connect();
   }

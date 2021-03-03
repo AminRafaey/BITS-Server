@@ -7,6 +7,7 @@ const Customer = require('../routes/Customer');
 const Lead = require('../routes/Lead');
 const Template = require('../routes/Template');
 const Label = require('../routes/Label');
+const Chat = require('../routes/Chat');
 
 module.exports = function (app) {
   app.use(express.json({ limit: '1mb' }));
@@ -19,4 +20,5 @@ module.exports = function (app) {
   app.use('/lead', Lead);
   app.use('/template', Template);
   app.use('/label', Label);
+  app.use('/Chat', Chat);
 };

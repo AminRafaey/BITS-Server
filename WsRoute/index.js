@@ -9,19 +9,18 @@ module.exports = function (io) {
     socket.personal = {};
     socket.personal.isChatsSent = false;
     socket.personal.isContactsSent = false;
-    socket.on('getQr', () => {
+    socket.on('get-qr', () => {
       async function connectToWhatsApp() {
         const conn = new WAConnection();
 
         conn.connectOptions.maxRetries = 5;
 
         conn.on('qr', (qr) => {
-          io.to(socket.id).emit('getQr', qr);
+          io.to(socket.id).emit('get-qr', qr);
         });
 
         conn.on('chats-received', () => {
           if (!socket.personal.isChatsSent) {
-            console.log('here');
             io.to(socket.id).emit('chats-received', conn.chats);
             socket.personal.isChatsSent = true;
           }
@@ -43,12 +42,12 @@ module.exports = function (io) {
             name: 'Amin',
             ...conn.base64EncodedAuthInfo(),
           });
-          io.to(socket.id).emit('connection_status', 'success');
+          io.to(socket.id).emit('connection-status', 'success');
         });
 
         await conn.connect();
 
-        socket.on('sendTextMessage', ({ mobileNumbers, message }) => {
+        socket.on('send-text-message', ({ mobileNumbers, message }) => {
           mobileNumbers.map((number) =>
             conn.sendMessage(
               `${number}@s.whatsapp.net`,
@@ -58,7 +57,7 @@ module.exports = function (io) {
           );
         });
 
-        socket.on('sendimage', ({ mobileNumbers, message, mediaPath }) => {
+        socket.on('send-image', ({ mobileNumbers, message, mediaPath }) => {
           try {
             const buffer = fs.readFileSync(
               path.join(__dirname, '../public/media', mediaPath)
@@ -80,7 +79,7 @@ module.exports = function (io) {
           }
         });
 
-        socket.on('sendvideo', ({ mobileNumbers, message, mediaPath }) => {
+        socket.on('send-video', ({ mobileNumbers, message, mediaPath }) => {
           try {
             const buffer = fs.readFileSync(
               path.join(__dirname, '../public/media', mediaPath)
@@ -102,7 +101,7 @@ module.exports = function (io) {
           }
         });
 
-        socket.on('sendpdf', ({ mobileNumbers, message, mediaPath }) => {
+        socket.on('send-pdf', ({ mobileNumbers, message, mediaPath }) => {
           try {
             const buffer = fs.readFileSync(
               path.join(__dirname, '../public/media', mediaPath)
@@ -131,7 +130,7 @@ module.exports = function (io) {
         });
       }
       connectToWhatsApp().catch((err) => {
-        io.to(socket.id).emit('noQr', null);
+        io.to(socket.id).emit('no-qr', null);
         console.log('unexpected error: ' + err);
       });
     });

@@ -46,39 +46,45 @@ router.post('/image', upload.array('file'), async (req, res) => {
   const mobileNumbers = JSON.parse(req.body.mobileNumbers);
   async function connectToWhatsApp() {
     renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
-    const conn = new WAConnection();
+    // const conn = new WAConnection();
 
-    const customer = await Customer.findOne({ name: 'Amin' });
-    const credentials = {
-      clientID: customer.clientID,
-      serverToken: customer.serverToken,
-      clientToken: customer.clientToken,
-      encKey: customer.encKey,
-      macKey: customer.macKey,
-    };
-    conn.loadAuthInfo(credentials);
-    conn.connectOptions.waitForChats = false;
-    conn.connectOptions.waitOnlyForLastMessage = false;
-    conn.connectOptions.maxIdleTimeMs = 2000;
-    conn.connectOptions.maxRetries = 3;
-    await conn.connect();
+    // const customer = await Customer.findOne({ name: 'Amin' });
+    // const credentials = {
+    //   clientID: customer.clientID,
+    //   serverToken: customer.serverToken,
+    //   clientToken: customer.clientToken,
+    //   encKey: customer.encKey,
+    //   macKey: customer.macKey,
+    // };
+    // conn.loadAuthInfo(credentials);
+    // conn.connectOptions.waitForChats = false;
+    // conn.connectOptions.waitOnlyForLastMessage = false;
+    // conn.connectOptions.maxIdleTimeMs = 2000;
+    // conn.connectOptions.maxRetries = 3;
+    // await conn.connect();
 
-    const buffer = fs.readFileSync(
-      `${req.files[0].destination}/new${path.extname(
-        req.files[0].originalname
-      )}`
-    );
-    mobileNumbers.map((number) =>
-      conn.sendMessage(`${number}@s.whatsapp.net`, buffer, MessageType.image, {
-        caption: message,
-      })
-    );
-    deleteFile(
-      req.files[0].destination +
-        '/new' +
-        path.extname(req.files[0].originalname)
-    );
-    res.send('success');
+    // const buffer = fs.readFileSync(
+    //   `${req.files[0].destination}/new${path.extname(
+    //     req.files[0].originalname
+    //   )}`
+    // );
+    // mobileNumbers.map((number) =>
+    //   conn.sendMessage(`${number}@s.whatsapp.net`, buffer, MessageType.image, {
+    //     caption: message,
+    //   })
+    // );
+    // deleteFile(
+    //   req.files[0].destination +
+    //     '/new' +
+    //     path.extname(req.files[0].originalname)
+    // );
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Saved',
+        data: `/new${path.extname(req.files[0].originalname)}`,
+      },
+    });
   }
 
   connectToWhatsApp().catch((err) => {
@@ -87,7 +93,7 @@ router.post('/image', upload.array('file'), async (req, res) => {
         '/new' +
         path.extname(req.files[0].originalname)
     );
-    deleteFile(req.files[0].path);
+    //deleteFile(req.files[0].path);
     res.send('failure');
     console.log('unexpected error: ' + err);
   });
@@ -98,41 +104,47 @@ router.post('/video', upload.array('file'), async (req, res) => {
   const mobileNumbers = JSON.parse(req.body.mobileNumbers);
   async function connectToWhatsApp() {
     renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
-    const conn = new WAConnection();
+    // const conn = new WAConnection();
 
-    const customer = await Customer.findOne({ name: 'Amin' });
-    const credentials = {
-      clientID: customer.clientID,
-      serverToken: customer.serverToken,
-      clientToken: customer.clientToken,
-      encKey: customer.encKey,
-      macKey: customer.macKey,
-    };
-    conn.loadAuthInfo(credentials);
-    conn.connectOptions.waitForChats = false;
-    conn.connectOptions.waitOnlyForLastMessage = false;
-    conn.connectOptions.maxIdleTimeMs = 2000;
-    conn.connectOptions.maxRetries = 3;
-    await conn.connect();
+    // const customer = await Customer.findOne({ name: 'Amin' });
+    // const credentials = {
+    //   clientID: customer.clientID,
+    //   serverToken: customer.serverToken,
+    //   clientToken: customer.clientToken,
+    //   encKey: customer.encKey,
+    //   macKey: customer.macKey,
+    // };
+    // conn.loadAuthInfo(credentials);
+    // conn.connectOptions.waitForChats = false;
+    // conn.connectOptions.waitOnlyForLastMessage = false;
+    // conn.connectOptions.maxIdleTimeMs = 2000;
+    // conn.connectOptions.maxRetries = 3;
+    // await conn.connect();
 
-    const buffer = fs.readFileSync(
-      `${req.files[0].destination}/new${path.extname(
-        req.files[0].originalname
-      )}`
-    );
-    mobileNumbers.map((number) =>
-      conn.sendMessage(`${number}@s.whatsapp.net`, buffer, MessageType.video, {
-        caption: message,
-      })
-    );
-    deleteFile(
-      req.files[0].destination +
-        '/new' +
-        path.extname(req.files[0].originalname)
-    );
-    res.send('success');
+    // const buffer = fs.readFileSync(
+    //   `${req.files[0].destination}/new${path.extname(
+    //     req.files[0].originalname
+    //   )}`
+    // );
+    // mobileNumbers.map((number) =>
+    //   conn.sendMessage(`${number}@s.whatsapp.net`, buffer, MessageType.video, {
+    //     caption: message,
+    //   })
+    // );
+    // deleteFile(
+    //   req.files[0].destination +
+    //     '/new' +
+    //     path.extname(req.files[0].originalname)
+    // );
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Saved',
+        data: `/new${path.extname(req.files[0].originalname)}`,
+      },
+    });
   }
-  renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
+  //renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
   connectToWhatsApp().catch((err) => {
     deleteFile(
       req.files[0].destination +
@@ -150,48 +162,55 @@ router.post('/pdf', upload.array('file'), async (req, res) => {
   const mobileNumbers = JSON.parse(req.body.mobileNumbers);
   async function connectToWhatsApp() {
     renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
-    const conn = new WAConnection();
+    // const conn = new WAConnection();
 
-    const customer = await Customer.findOne({ name: 'Amin' });
-    const credentials = {
-      clientID: customer.clientID,
-      serverToken: customer.serverToken,
-      clientToken: customer.clientToken,
-      encKey: customer.encKey,
-      macKey: customer.macKey,
-    };
-    conn.loadAuthInfo(credentials);
-    conn.connectOptions.waitForChats = false;
-    conn.connectOptions.waitOnlyForLastMessage = false;
-    conn.connectOptions.maxIdleTimeMs = 2000;
-    conn.connectOptions.maxRetries = 3;
-    await conn.connect();
+    // const customer = await Customer.findOne({ name: 'Amin' });
+    // const credentials = {
+    //   clientID: customer.clientID,
+    //   serverToken: customer.serverToken,
+    //   clientToken: customer.clientToken,
+    //   encKey: customer.encKey,
+    //   macKey: customer.macKey,
+    // };
+    // conn.loadAuthInfo(credentials);
+    // conn.connectOptions.waitForChats = false;
+    // conn.connectOptions.waitOnlyForLastMessage = false;
+    // conn.connectOptions.maxIdleTimeMs = 2000;
+    // conn.connectOptions.maxRetries = 3;
+    // await conn.connect();
 
-    const buffer = fs.readFileSync(
-      `${req.files[0].destination}/new${path.extname(
-        req.files[0].originalname
-      )}`
-    );
-    mobileNumbers.map((number) =>
-      conn.sendMessage(
-        `${number}@s.whatsapp.net`,
-        buffer,
-        MessageType.document,
-        { mimetype: Mimetype.pdf }
-      )
-    );
-    message &&
-      mobileNumbers.map((number) =>
-        conn.sendMessage(`${number}@s.whatsapp.net`, message, MessageType.text)
-      );
-    deleteFile(
-      req.files[0].destination +
-        '/new' +
-        path.extname(req.files[0].originalname)
-    );
-    res.send('success');
+    // const buffer = fs.readFileSync(
+    //   `${req.files[0].destination}/new${path.extname(
+    //     req.files[0].originalname
+    //   )}`
+    // );
+    // mobileNumbers.map((number) =>
+    //   conn.sendMessage(
+    //     `${number}@s.whatsapp.net`,
+    //     buffer,
+    //     MessageType.document,
+    //     { mimetype: Mimetype.pdf }
+    //   )
+    // );
+    // message &&
+    //   mobileNumbers.map((number) =>
+    //     conn.sendMessage(`${number}@s.whatsapp.net`, message, MessageType.text)
+    //   );
+    // deleteFile(
+    //   req.files[0].destination +
+    //     '/new' +
+    //     path.extname(req.files[0].originalname)
+    // );
+    // res.send('success');
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Saved',
+        data: `/new${path.extname(req.files[0].originalname)}`,
+      },
+    });
   }
-  renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
+  //renameFile(req.files[0], 'new' + path.extname(req.files[0].originalname));
   connectToWhatsApp().catch((err) => {
     deleteFile(
       req.files[0].destination +

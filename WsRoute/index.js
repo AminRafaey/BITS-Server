@@ -9,7 +9,6 @@ module.exports = function (io) {
     socket.personal = {};
     socket.personal.isChatsSent = false;
     socket.personal.isContactsSent = false;
-    socket.personal.isUnreadSent = false;
     socket.on('get-qr', () => {
       async function connectToWhatsApp() {
         const conn = new WAConnection();
@@ -47,12 +46,6 @@ module.exports = function (io) {
         });
 
         await conn.connect();
-
-        // const unread = await conn.loadAllUnreadMessages ()
-        // if(!socket.personal.isUnreadSent){
-        //   socket.personal.isUnreadSent = true;
-        //   io.to(socket.id).emit('unread-messages', unread);
-        // }
 
         socket.on('get-contact-messages', async (jid) => {
           const messages = await conn.loadMessages(jid, 100);

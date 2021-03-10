@@ -2,13 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { Lead, validateLead } = require('../models/Lead');
 
-router.get('/', async (req, res) => {
+router.get('/:jid', async (req, res) => {
   try {
+    const { jid } = req.params;
+    console.log(jid);
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.find(),
+        data: await Lead.findOne({ jid: jid }).populate('labels'),
       },
     });
   } catch (error) {

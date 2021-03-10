@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
+Joi.objectId = require('joi-objectid')(Joi);
 
 const schema = new mongoose.Schema({
   title: {
@@ -8,10 +9,9 @@ const schema = new mongoose.Schema({
     max: 30,
   },
 
-  mobileNumber: {
+  jid: {
     type: String,
     required: true,
-    unique: true,
   },
 
   email: {
@@ -22,6 +22,9 @@ const schema = new mongoose.Schema({
     type: String,
   },
 
+  location: {
+    type: String,
+  },
   notes: [
     {
       content: {
@@ -33,22 +36,30 @@ const schema = new mongoose.Schema({
       },
     },
   ],
+  labels: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Label',
+    },
+  ],
   createdAt: {
     type: Date,
     default: Date(),
   },
 });
 
+//.regex(/^(92)\d{10}$/)
+
 function validateLead(lead) {
   const schema = Joi.object({
     title: Joi.string().optional(),
-    mobileNumber: Joi.string()
-      .regex(/^(92)\d{10}$/)
-      .required(),
+    jid: Joi.string().required(),
     email: Joi.string()
       .email({ tlds: { allow: true } })
       .optional(),
     source: Joi.string().optional(),
+    location: Joi.string().optional(),
+    labels: Joi.array().items(Joi.objectId()),
     notes: Joi.array()
       .items(
         Joi.object()

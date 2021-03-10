@@ -7,20 +7,40 @@ const { Label, validateLabel } = require('./models/Label');
 
 const leads = [
   {
-    title: 'Zong',
-    mobileNumber: '923174343123',
+    title: 'Fayiz',
+    jid: '923224797905@s.whatsapp.net',
+    email: 'aminrafaey543@gmail.com',
+    source: 'Facebook',
+    location: 'Shad Bagh Lahore',
+    labels: [],
+    notes: [{ content: 'Treat him with special care' }],
   },
   {
-    title: 'Ufone',
-    mobileNumber: '923348035644',
+    title: 'Fayiz',
+    jid: '923222070707@s.whatsapp.net',
+    email: 'aminrafaey543@gmail.com',
+    source: 'Facebook',
+    location: 'Shad Bagh Lahore',
+    labels: [],
+    notes: [{ content: 'Treat him with special care' }],
   },
   {
-    title: 'Telenor',
-    mobileNumber: '923415511689',
+    title: 'Aliza',
+    jid: '923224797905@s.whatsapp.net',
+    email: 'aminrafaey543@gmail.com',
+    source: 'Facebook',
+    location: 'Shad Bagh Lahore',
+    labels: ['602c00b0861536475c2f69ed', '602c00b0861536475c2f69ee'],
+    notes: [{ content: 'Treat him with special care' }],
   },
   {
-    title: 'Amin',
-    mobileNumber: '923364773099',
+    title: 'Moeed',
+    jid: '923222070707@s.whatsapp.net',
+    email: 'aminrafaey543@gmail.com',
+    source: 'Facebook',
+    location: 'Shad Bagh Lahore',
+    labels: [],
+    notes: [{ content: 'Treat him with special care' }],
   },
 ];
 
@@ -81,7 +101,7 @@ async function seed() {
     useCreateIndex: true,
   });
 
-  await mongoose.connection.dropDatabase();
+  // await mongoose.connection.dropDatabase();
 
   for (let lead of leads) {
     const { error } = validateLead(lead);
@@ -92,32 +112,32 @@ async function seed() {
     await new Lead(lead).save();
   }
 
-  for (let template of templates) {
-    const { error } = validateTemplate(template);
-    if (error) {
-      console.log(error.details[0].message);
-      return;
-    }
-    await new Template(template).save();
-  }
+  // for (let template of templates) {
+  //   const { error } = validateTemplate(template);
+  //   if (error) {
+  //     console.log(error.details[0].message);
+  //     return;
+  //   }
+  //   await new Template(template).save();
+  // }
 
-  for (let customer of customers) {
-    const { error } = validateCustomer(customer);
-    if (error) {
-      console.log(error.details[0].message);
-      return;
-    }
-    await new Customer(customer).save();
-  }
+  // for (let customer of customers) {
+  //   const { error } = validateCustomer(customer);
+  //   if (error) {
+  //     console.log(error.details[0].message);
+  //     return;
+  //   }
+  //   await new Customer(customer).save();
+  // }
 
-  for (let label of labels) {
-    const { error } = validateLabel(label);
-    if (error) {
-      console.log(error.details[0].message);
-      return;
-    }
-    await new Label(label).save();
-  }
+  // for (let label of labels) {
+  //   const { error } = validateLabel(label);
+  //   if (error) {
+  //     console.log(error.details[0].message);
+  //     return;
+  //   }
+  //   await new Label(label).save();
+  // }
 
   mongoose.disconnect();
   console.info('Done!');

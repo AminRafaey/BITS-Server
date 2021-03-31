@@ -10,6 +10,7 @@ const {
   isUrlValid,
   validateContent,
   isEmailValid,
+  validateFilter,
 } = require('./RouteHelpers/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
@@ -132,6 +133,75 @@ router.get('/', async (req, res) => {
         name: 'successful',
         message: 'Successfully Fetched',
         data: await Lead.findById(_id),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.get('/filter', async (req, res) => {
+  try {
+    Object.keys(req.query).map((f) => (req.query[f] = eval(req.query[f])));
+
+    const {
+      firstName,
+      leadSource,
+      companyName,
+      labels,
+      email,
+      phone,
+      city,
+      state,
+      zip,
+      country,
+    } = req.query;
+
+    const { error } = validateFilter(req.query);
+    if (error) {
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: error.details[0].path[0],
+        },
+      });
+    }
+
+    for (label of labels) {
+      const { error: error2 } = validateObjectId({ _id: label.labels });
+      if (error2) {
+        return res.status(400).send({
+          field: {
+            message: error2.details[0].message,
+            name: error2.details[0].path[0],
+          },
+        });
+      }
+    }
+    const query = eval({
+      $and: [
+        { $or: [...firstName] },
+        { $or: [...leadSource] },
+        { $or: [...companyName] },
+        { $or: [...labels] },
+        { $or: [...email] },
+        { $or: [...phone] },
+        { $or: [...city] },
+        { $or: [...state] },
+        { $or: [...zip] },
+        { $or: [...country] },
+      ],
+    });
+
+    const leads = await Lead.find(query);
+
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Fetched',
+        data: leads,
       },
     });
   } catch (error) {
@@ -267,6 +337,36 @@ router.delete('/', async (req, res) => {
         name: 'successful',
         message: 'Successfully Deleted',
         data: lead,
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.delete('/multiple', async (req, res) => {
+  try {
+    const { leads } = req.body;
+    for (lead of leads) {
+      const { error } = validateObjectId({ _id: lead });
+      if (error)
+        return res.status(400).send({
+          field: {
+            message: error.details[0].message,
+            name: error.details[0].path[0],
+          },
+        });
+    }
+    for (lead of leads) {
+      await Lead.findByIdAndDelete(lead);
+    }
+
+    res.send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Deleted',
       },
     });
   } catch (error) {

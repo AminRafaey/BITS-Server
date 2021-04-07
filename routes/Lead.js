@@ -319,6 +319,39 @@ router.put('/', async (req, res) => {
   }
 });
 
+router.put('/labels', async (req, res) => {
+  try {
+    const { leads } = req.body;
+    for (lead of leads) {
+      const { _id, labels } = lead;
+
+      const { error } = validateObjectId({ _id: _id });
+      if (error) throw new Error('Object id is not valid');
+
+      for (label of labels) {
+        const { error } = validateObjectId({ _id: label });
+        if (error) throw new Error('Object id is not valid');
+
+        if (!(await Label.findById(label)))
+          throw new Error('Label with id is not exist.');
+      }
+
+      await Lead.updateOne({ _id: _id }, { labels: labels });
+    }
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully updated',
+        data: {},
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
 router.delete('/', async (req, res) => {
   try {
     const leads = JSON.parse(req.query.leads);

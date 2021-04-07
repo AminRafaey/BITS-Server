@@ -50,7 +50,7 @@ function validateCustomer(customer) {
     email: Joi.string()
       .email({ tlds: { allow: true } })
       .required(),
-    profile: Joi.string().optional(),
+    profile: Joi.string().allow('').optional(),
     country: Joi.string().required(),
   });
   return schema.validate(customer);

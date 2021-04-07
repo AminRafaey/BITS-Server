@@ -47,11 +47,16 @@ router.post('/', async (req, res) => {
 
 router.get('/all', async (req, res) => {
   try {
-    res.status(200).send({
+    const labels = await Label.find();
+    const labelsHash = {};
+    labels.map((l) => {
+      labelsHash[l._id] = l;
+    });
+    return res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Label.find(),
+        data: labelsHash,
       },
     });
   } catch (error) {

@@ -14,7 +14,7 @@ const {
 } = require('./RouteHelpers/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
-router.post('/', async (req, res) => {
+router.post('/create', async (req, res) => {
   try {
     const { error } = validateLead(req.body);
     if (error) {
@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'phone',
-          message: 'Phone number already exist',
+          message: 'Sorry, duplicate contact found with the same phone number.',
         },
       });
     }
@@ -69,7 +69,8 @@ router.post('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'email',
-          message: 'Email already Exist',
+          message:
+            'Sorry, duplicate contact found with the same email address.',
         },
       });
     }

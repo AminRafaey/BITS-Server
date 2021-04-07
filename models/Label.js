@@ -22,7 +22,7 @@ function validateLabel(label) {
   const schema = Joi.object({
     title: Joi.string().required(),
     color: Joi.string().required(),
-    description: Joi.string().optional(),
+    description: Joi.string().allow('').optional(),
   });
   return schema.validate(label);
 }

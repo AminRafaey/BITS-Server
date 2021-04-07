@@ -82,16 +82,34 @@ const customers = [
 
 const labels = [
   {
-    title: 'New customer',
-    color: '#ffff',
+    title: 'Hot',
+    description: 'This will be the label description',
+    color: '#B60205',
+  },
+  {
+    title: 'Cold',
+    description: 'This will be the label description',
+    color: '#D73A4A',
   },
   {
     title: 'New Lead',
-    color: '#ffff',
+    description: 'This will be the label description',
+    color: '#0075CA',
   },
   {
-    title: 'Other',
-    color: '#ffff',
+    title: 'Old Customer',
+    description: 'This will be the label description',
+    color: '#CFD3D7',
+  },
+  {
+    title: 'Reliable Lead',
+    description: 'This will be the label description',
+    color: '#A2EEEF',
+  },
+  {
+    title: 'Warm',
+    description: 'This will be the label description',
+    color: '#7057FF',
   },
 ];
 async function seed() {
@@ -103,14 +121,14 @@ async function seed() {
 
   // await mongoose.connection.dropDatabase();
 
-  for (let lead of leads) {
-    const { error } = validateLead(lead);
-    if (error) {
-      console.log(error.details[0].message);
-      return;
-    }
-    await new Lead(lead).save();
-  }
+  // for (let lead of leads) {
+  //   const { error } = validateLead(lead);
+  //   if (error) {
+  //     console.log(error.details[0].message);
+  //     return;
+  //   }
+  //   await new Lead(lead).save();
+  // }
 
   // for (let template of templates) {
   //   const { error } = validateTemplate(template);
@@ -130,14 +148,14 @@ async function seed() {
   //   await new Customer(customer).save();
   // }
 
-  // for (let label of labels) {
-  //   const { error } = validateLabel(label);
-  //   if (error) {
-  //     console.log(error.details[0].message);
-  //     return;
-  //   }
-  //   await new Label(label).save();
-  // }
+  for (let label of labels) {
+    const { error } = validateLabel(label);
+    if (error) {
+      console.log(error.details[0].message);
+      return;
+    }
+    await new Label(label).save();
+  }
 
   mongoose.disconnect();
   console.info('Done!');

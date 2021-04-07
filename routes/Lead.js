@@ -321,23 +321,26 @@ router.put('/', async (req, res) => {
 
 router.delete('/', async (req, res) => {
   try {
-    const { error } = validateObjectId(req.query);
-    if (error)
-      return res.status(400).send({
-        field: {
-          message: error.details[0].message,
-          name: error.details[0].path[0],
-        },
-      });
+    const leads = JSON.parse(req.query.leads);
+    leads.map((l) => {
+      const { error } = validateObjectId({ _id: l });
+      if (error)
+        return res.status(400).send({
+          field: {
+            message: error.details[0].message,
+            name: error.details[0].path[0],
+          },
+        });
+    });
+    await Lead.deleteMany({
+      _id: { $in: leads },
+    });
 
-    const { _id } = req.query;
-
-    const lead = await Lead.findByIdAndDelete(_id);
     res.send({
       field: {
         name: 'successful',
         message: 'Successfully Deleted',
-        data: lead,
+        data: {},
       },
     });
   } catch (error) {

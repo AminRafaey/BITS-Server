@@ -746,4 +746,10 @@ router.post('/csvUpload', async (req, res) => {
     }
   });
 });
+
+router.get('/downloadSample', async (req, res) => {
+  const file = __dirname + '/../public/download/SampleLeads.csv';
+  res.download(file);
+});
+
 module.exports = router;

@@ -55,7 +55,7 @@ router.post('/create', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'phone',
-          message: 'Sorry, duplicate contact found with the same phone number.',
+          message: 'Sorry, duplicate lead found with the same phone number.',
         },
       });
     }
@@ -69,8 +69,7 @@ router.post('/create', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'email',
-          message:
-            'Sorry, duplicate contact found with the same email address.',
+          message: 'Sorry, duplicate lead found with the same email address.',
         },
       });
     }
@@ -485,7 +484,7 @@ router.delete('/note', async (req, res) => {
     }
 
     lead.notes = lead.notes.filter((l) => l._id != noteId);
-    console.log(lead);
+
     await lead.save();
 
     res.status(200).send({
@@ -564,9 +563,7 @@ router.post('/csvUpload', async (req, res) => {
 
   const fileFilter = (req, file, cb) => {
     if (
-      file.mimetype === '.csv' ||
-      file.mimetype ===
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.mimetype === 'text/csv' ||
       file.mimetype === 'application/vnd.ms-excel'
     ) {
       cb(null, true);
@@ -586,7 +583,6 @@ router.post('/csvUpload', async (req, res) => {
 
   upload.single('excelFile')(req, res, function (err) {
     if (req.inValidFileFormat) {
-      console.log(req.inValidFileFormat);
       res.status(400).send({
         field: {
           name: 'File',
@@ -595,7 +591,6 @@ router.post('/csvUpload', async (req, res) => {
       });
       return;
     } else if (err) {
-      console.log(err);
       res.status(400).send({
         field: {
           name: 'File',
@@ -604,50 +599,147 @@ router.post('/csvUpload', async (req, res) => {
       });
       return;
     }
+
     try {
       let csvData = [];
       fs.createReadStream(`${__dirname}/../public/csv/excelFile.csv`)
-        .pipe(
-          parse({
-            delimiter: ',',
-          })
-        )
+        .pipe(parse({ delimiter: ',' }))
         .on('data', function (data) {
           csvData.push({
             firstName: data[0],
             lastName: data[1],
             leadSource: data[2],
             companyName: data[3],
-            labels: data[4],
-            email: data[5],
-            phone: data[6],
-            website: data[7],
-            address: data[8],
-            city: data[9],
-            state: data[10],
-            zip: data[11],
-            country: data[12],
+            email: data[4],
+            phone: data[5],
+            website: data[6],
+            address: data[7],
+            city: data[8],
+            state: data[9],
+            zip: data[10],
+            country: data[11],
           });
         })
         .on('end', async function () {
           csvData.shift();
 
-          csvData = csvData.filter((l) => !l.firstName);
-          csvData = csvData.filter((l) => phone(l.phone).length !== 0);
-          csvData = csvData.filter((l) => !isEmailValid(l.email));
-          csvData = csvData.filter((l) => !isUrlValid(l.website));
+          let responseMsg = '';
+          let realNumberOfLeads = csvData.length;
+          csvData = csvData.filter((l) => l.firstName);
 
-          const query = await Lead.insertMany(csvData);
-          res.status(200).send({
+          realNumberOfLeads !== csvData.length &&
+            (responseMsg = `${
+              realNumberOfLeads === csvData.length
+                ? 0
+                : realNumberOfLeads - csvData.length
+            } Leads are filtered out because their first name was empty and it can't be empty\n`);
+          realNumberOfLeads = csvData.length;
+
+          csvData = csvData.filter((l) =>
+            l.phone ? phone(l.phone).length !== 0 : true
+          );
+
+          realNumberOfLeads !== csvData.length &&
+            (responseMsg =
+              responseMsg +
+              `${
+                realNumberOfLeads - csvData.length
+              } Leads are filtered out because their phone number is not valid\n`);
+
+          realNumberOfLeads = csvData.length;
+          csvData = csvData.filter((l) =>
+            l.email ? isEmailValid(l.email) : true
+          );
+
+          realNumberOfLeads !== csvData.length &&
+            (responseMsg =
+              responseMsg +
+              `${
+                realNumberOfLeads - csvData.length
+              } Leads are filtered out because their email is not valid\n`);
+          realNumberOfLeads = csvData.length;
+          csvData = csvData.filter((l) =>
+            l.website ? isUrlValid(l.website) : true
+          );
+
+          realNumberOfLeads !== csvData.length &&
+            (responseMsg =
+              responseMsg +
+              `${
+                realNumberOfLeads - csvData.length
+              } Leads are filtered out because their website url is not valid\n`);
+
+          let saved = 0;
+          let rejectBczOfValidation = 0;
+          let rejectBczOfPNRepetition = 0;
+          let rejectBczOfERepetition = 0;
+
+          for (lead of csvData) {
+            try {
+              const { error } = validateLead(lead);
+              if (error) {
+                rejectBczOfValidation++;
+                continue;
+              }
+
+              const { phone: mobileNumber, email } = lead;
+
+              if (
+                mobileNumber &&
+                (await Lead.findOne({
+                  phone: mobileNumber,
+                }))
+              ) {
+                rejectBczOfPNRepetition++;
+                continue;
+              }
+
+              if (
+                email &&
+                (await Lead.findOne({
+                  email: email,
+                }))
+              ) {
+                rejectBczOfERepetition++;
+                continue;
+              }
+              await new Lead(lead).save();
+              saved++;
+            } catch (err) {
+              continue;
+            }
+          }
+          rejectBczOfValidation > 0 &&
+            (responseMsg =
+              responseMsg +
+              `${rejectBczOfValidation} Leads are filtered out because they are not validated\n`);
+
+          rejectBczOfPNRepetition > 0 &&
+            (responseMsg =
+              responseMsg +
+              `${rejectBczOfPNRepetition} Leads are filtered out because duplicate lead found with the same phone number\n`);
+
+          rejectBczOfERepetition > 0 &&
+            (responseMsg =
+              responseMsg +
+              `${rejectBczOfERepetition} Leads are filtered out because duplicate lead found with the same email\n`);
+
+          responseMsg =
+            responseMsg + `Total ${saved} Leads are successfully saved\n`;
+          return res.status(200).send({
             field: {
               name: 'successful',
-              message: 'Successfully upload',
+              message: responseMsg,
               data: {},
             },
           });
+        })
+        .on('error', function (err) {
+          res.status(500).send({
+            field: { message: err, name: 'unexpected' },
+          });
         });
     } catch (err) {
-      console.log(err);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });

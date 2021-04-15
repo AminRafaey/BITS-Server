@@ -1,4 +1,5 @@
 const express = require('express');
+const querystring = require('querystring');
 const multer = require('multer');
 const parse = require('csv-parse');
 const phone = require('phone');
@@ -144,19 +145,25 @@ router.get('/', async (req, res) => {
 
 router.get('/filter', async (req, res) => {
   try {
+    req.query = JSON.stringify(req.query);
+    req.query = JSON.parse(req.query);
+    Object.keys(req.query).map(
+      (f) => (req.query[f] = req.query[f].map((obj) => JSON.parse(obj)))
+    );
     Object.keys(req.query).map((f) => (req.query[f] = eval(req.query[f])));
 
     const {
-      firstName,
-      leadSource,
-      companyName,
-      labels,
-      email,
-      phone,
-      city,
-      state,
-      zip,
-      country,
+      firstNames = [{}],
+      lastNames = [{}],
+      leadSources = [{}],
+      companies = [{}],
+      labels = [{}],
+      emails = [{}],
+      phones = [{}],
+      cities = [{}],
+      states = [{}],
+      zip = [{}],
+      countries = [{}],
     } = req.query;
 
     const { error } = validateFilter(req.query);
@@ -169,29 +176,35 @@ router.get('/filter', async (req, res) => {
       });
     }
 
-    for (label of labels) {
-      const { error: error2 } = validateObjectId({ _id: label.labels });
-      if (error2) {
-        return res.status(400).send({
-          field: {
-            message: error2.details[0].message,
-            name: error2.details[0].path[0],
-          },
+    if (JSON.stringify(labels) !== JSON.stringify([{}])) {
+      for (label of labels) {
+        const { error: error2 } = validateObjectId({
+          _id: label.labels['$ne'] ? label.labels['$ne'] : label.labels,
         });
+        if (error2) {
+          return res.status(400).send({
+            field: {
+              message: error2.details[0].message,
+              name: error2.details[0].path[0],
+            },
+          });
+        }
       }
     }
+
     const query = eval({
       $and: [
-        { $or: [...firstName] },
-        { $or: [...leadSource] },
-        { $or: [...companyName] },
+        { $or: [...firstNames] },
+        { $or: [...lastNames] },
+        { $or: [...leadSources] },
+        { $or: [...companies] },
         { $or: [...labels] },
-        { $or: [...email] },
-        { $or: [...phone] },
-        { $or: [...city] },
-        { $or: [...state] },
+        { $or: [...emails] },
+        { $or: [...phones] },
+        { $or: [...cities] },
+        { $or: [...states] },
         { $or: [...zip] },
-        { $or: [...country] },
+        { $or: [...countries] },
       ],
     });
 

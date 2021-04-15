@@ -10,7 +10,7 @@ const validateContent = (data) => {
 
 const validateFilter = (filters) => {
   const schema = Joi.object({
-    firstName: Joi.array()
+    firstNames: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -18,9 +18,17 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
-
-    leadSource: Joi.array()
+      .optional(),
+    lastNames: Joi.array()
+      .items(
+        Joi.object()
+          .keys({
+            lastName: Joi.optional(),
+          })
+          .required()
+      )
+      .optional(),
+    leadSources: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -28,8 +36,8 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
-    companyName: Joi.array()
+      .optional(),
+    companies: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -37,7 +45,7 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
+      .optional(),
     labels: Joi.array()
       .items(
         Joi.object()
@@ -46,8 +54,8 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
-    email: Joi.array()
+      .optional(),
+    emails: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -55,8 +63,8 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
-    phone: Joi.array()
+      .optional(),
+    phones: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -64,9 +72,9 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
+      .optional(),
 
-    city: Joi.array()
+    cities: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -74,8 +82,8 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
-    state: Joi.array()
+      .optional(),
+    states: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -83,7 +91,7 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
+      .optional(),
     zip: Joi.array()
       .items(
         Joi.object()
@@ -92,8 +100,8 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
-    country: Joi.array()
+      .optional(),
+    countries: Joi.array()
       .items(
         Joi.object()
           .keys({
@@ -101,7 +109,7 @@ const validateFilter = (filters) => {
           })
           .required()
       )
-      .required(),
+      .optional(),
   });
   return schema.validate(filters);
 };

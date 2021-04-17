@@ -764,4 +764,35 @@ router.get('/downloadSample', async (req, res) => {
   res.download(file);
 });
 
+router.get('/allCompanies', async (req, res) => {
+  try {
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Fetched',
+        data: await Lead.find().distinct('companyName'),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.get('/allLeadSources', async (req, res) => {
+  try {
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Fetched',
+        data: await Lead.find().distinct('leadSource'),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
 module.exports = router;

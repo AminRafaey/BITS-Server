@@ -394,36 +394,6 @@ router.delete('/', async (req, res) => {
   }
 });
 
-router.delete('/multiple', async (req, res) => {
-  try {
-    const { leads } = req.body;
-    for (lead of leads) {
-      const { error } = validateObjectId({ _id: lead });
-      if (error)
-        return res.status(400).send({
-          field: {
-            message: error.details[0].message,
-            name: error.details[0].path[0],
-          },
-        });
-    }
-    for (lead of leads) {
-      await Lead.findByIdAndDelete(lead);
-    }
-
-    res.send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Deleted',
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
-  }
-});
-
 router.put('/note', async (req, res) => {
   try {
     const { _id, noteId, content } = req.body;

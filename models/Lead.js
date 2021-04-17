@@ -3,28 +3,56 @@ const Joi = require('joi');
 Joi.objectId = require('joi-objectid')(Joi);
 
 const schema = new mongoose.Schema({
-  title: {
-    type: String,
-    min: 2,
-    max: 30,
-  },
-
-  jid: {
+  firstName: {
     type: String,
     required: true,
   },
 
+  lastName: {
+    type: String,
+  },
+
+  leadSource: {
+    type: String,
+  },
+
+  companyName: {
+    type: String,
+  },
+
+  labels: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Label',
+    },
+  ],
   email: {
     type: String,
   },
 
-  source: {
+  phone: {
     type: String,
   },
 
-  location: {
+  website: {
     type: String,
   },
+  address: {
+    type: String,
+  },
+  city: {
+    type: String,
+  },
+  state: {
+    type: String,
+  },
+  zip: {
+    type: String,
+  },
+  country: {
+    type: String,
+  },
+
   notes: [
     {
       content: {
@@ -34,12 +62,10 @@ const schema = new mongoose.Schema({
         type: Date,
         default: Date(),
       },
-    },
-  ],
-  labels: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Label',
+      editedAt: {
+        type: Date,
+        default: Date(),
+      },
     },
   ],
   createdAt: {
@@ -48,25 +74,31 @@ const schema = new mongoose.Schema({
   },
 });
 
-//.regex(/^(92)\d{10}$/)
-
 function validateLead(lead) {
   const schema = Joi.object({
-    title: Joi.string().optional(),
-    jid: Joi.string().required(),
+    firstName: Joi.string().required(),
+    lastName: Joi.string().allow('').optional(),
+    leadSource: Joi.string().allow('').optional(),
+    companyName: Joi.string().allow('').optional(),
+    labels: Joi.array().items(Joi.objectId()),
     email: Joi.string()
       .email({ tlds: { allow: true } })
+      .allow('')
       .optional(),
-    source: Joi.string().optional(),
-    location: Joi.string().optional(),
-    labels: Joi.array().items(Joi.objectId()),
+    phone: Joi.string().allow('').optional(),
+    website: Joi.string().allow('').optional(),
+    address: Joi.string().allow('').optional(),
+    city: Joi.string().allow('').optional(),
+    state: Joi.string().allow('').optional(),
+    zip: Joi.string().allow('').optional(),
+    country: Joi.string().allow('').optional(),
     notes: Joi.array()
       .items(
         Joi.object()
           .keys({
             content: Joi.string().required(),
           })
-          .required()
+          .optional()
       )
       .optional(),
   });

@@ -9,7 +9,9 @@ const schema = new mongoose.Schema({
   color: {
     type: String,
   },
-
+  description: {
+    type: String,
+  },
   createdAt: {
     type: Date,
     default: Date(),
@@ -20,6 +22,7 @@ function validateLabel(label) {
   const schema = Joi.object({
     title: Joi.string().required(),
     color: Joi.string().required(),
+    description: Joi.string().allow('').optional(),
   });
   return schema.validate(label);
 }

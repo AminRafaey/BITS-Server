@@ -33,7 +33,7 @@ function validateTemplate(template) {
     title: Joi.string().required(),
     content: Joi.string().required(),
     mediaType: Joi.string().valid('image', 'video', 'pdf').optional(),
-    media: Joi.string().optional(),
+    media: Joi.string().allow('').optional(),
   });
   return schema.validate(template);
 }

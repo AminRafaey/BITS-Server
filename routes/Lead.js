@@ -225,7 +225,7 @@ router.get('/filter', async (req, res) => {
 
 router.put('/', async (req, res) => {
   try {
-    const { _id, ...data } = req.body;
+    const { _id, notes, createdAt, __v, ...data } = req.body;
     const { error } = validateLead(data);
     if (error)
       return res.status(400).send({
@@ -283,7 +283,7 @@ router.put('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'phone',
-          message: 'Phone number already exist',
+          message: 'Sorry, duplicate lead found with the same phone number.',
         },
       });
     }
@@ -300,7 +300,7 @@ router.put('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'email',
-          message: 'Email already Exist',
+          message: 'Sorry, duplicate lead found with the same email address.',
         },
       });
     }
@@ -320,7 +320,7 @@ router.put('/', async (req, res) => {
       field: {
         name: 'successful',
         message: 'Successfully updated',
-        data: updatedLead,
+        data: await Lead.findById(_id),
       },
     });
   } catch (error) {

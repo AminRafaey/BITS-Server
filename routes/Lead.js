@@ -366,8 +366,9 @@ router.put('/labels', async (req, res) => {
 router.delete('/', async (req, res) => {
   try {
     const leads = JSON.parse(req.query.leads);
-    leads.map((l) => {
-      const { error } = validateObjectId({ _id: l });
+
+    for (lead of leads) {
+      const { error } = validateObjectId({ _id: lead });
       if (error)
         return res.status(400).send({
           field: {
@@ -375,7 +376,8 @@ router.delete('/', async (req, res) => {
             name: error.details[0].path[0],
           },
         });
-    });
+    }
+
     await Lead.deleteMany({
       _id: { $in: leads },
     });

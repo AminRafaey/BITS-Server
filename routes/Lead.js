@@ -116,6 +116,22 @@ router.get('/all', async (req, res) => {
   }
 });
 
+router.get('/phone', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Fetched',
+        data: await Lead.findOne({ phone: phone }),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
 router.get('/', async (req, res) => {
   try {
     const { _id } = req.query;

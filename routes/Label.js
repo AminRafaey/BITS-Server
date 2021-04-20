@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Label, validateLabel } = require('../models/Label');
+const { Lead } = require('../models/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
 router.post('/', async (req, res) => {
@@ -47,7 +48,21 @@ router.post('/', async (req, res) => {
 
 router.get('/all', async (req, res) => {
   try {
-    const labels = await Label.find();
+    let labels = await Label.find();
+    labels = JSON.stringify(labels);
+    labels = JSON.parse(labels);
+    const labelCounts = await Lead.aggregate([
+      { $unwind: '$labels' },
+      { $group: { _id: '$labels', labelCount: { $sum: 1 } } },
+    ]);
+    labels = labels.map((l) => {
+      const label = labelCounts.find((c) => c._id == l._id);
+      if (label) {
+        return { ...l, count: label.labelCount };
+      } else {
+        return { ...l, count: 0 };
+      }
+    });
     const labelsHash = {};
     labels.map((l) => {
       labelsHash[l._id] = l;

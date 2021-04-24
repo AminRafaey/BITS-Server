@@ -242,7 +242,7 @@ router.get('/filter', async (req, res) => {
 router.put('/', async (req, res) => {
   try {
     const { _id, notes, createdAt, __v, ...data } = req.body;
-    const { error } = validateLead(data);
+    const { error } = validateLead({ ...data, ...(notes && { notes }) });
     if (error)
       return res.status(400).send({
         field: {
@@ -331,7 +331,10 @@ router.put('/', async (req, res) => {
         });
     }
 
-    const updatedLead = await Lead.updateOne({ _id: _id }, data);
+    const updatedLead = await Lead.updateOne(
+      { _id: _id },
+      { ...data, ...(notes && { notes }) }
+    );
     res.status(200).send({
       field: {
         name: 'successful',

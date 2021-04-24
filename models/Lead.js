@@ -97,6 +97,9 @@ function validateLead(lead) {
         Joi.object()
           .keys({
             content: Joi.string().required(),
+            _id: Joi.string().optional(),
+            editedAt: Joi.string().optional(),
+            createdAt: Joi.string().optional(),
           })
           .optional()
       )

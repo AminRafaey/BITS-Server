@@ -72,6 +72,9 @@ const schema = new mongoose.Schema({
     type: Date,
     default: Date(),
   },
+  updatedAt: {
+    type: Date,
+  },
 });
 
 function validateLead(lead) {

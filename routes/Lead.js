@@ -116,6 +116,22 @@ router.get('/all', async (req, res) => {
   }
 });
 
+router.get('/phone', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Fetched',
+        data: await Lead.findOne({ phone: phone }),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
 router.get('/', async (req, res) => {
   try {
     const { _id } = req.query;
@@ -226,7 +242,7 @@ router.get('/filter', async (req, res) => {
 router.put('/', async (req, res) => {
   try {
     const { _id, notes, createdAt, __v, ...data } = req.body;
-    const { error } = validateLead(data);
+    const { error } = validateLead({ ...data, ...(notes && { notes }) });
     if (error)
       return res.status(400).send({
         field: {
@@ -315,7 +331,10 @@ router.put('/', async (req, res) => {
         });
     }
 
-    const updatedLead = await Lead.updateOne({ _id: _id }, data);
+    const updatedLead = await Lead.updateOne(
+      { _id: _id },
+      { ...data, ...(notes && { notes }) }
+    );
     res.status(200).send({
       field: {
         name: 'successful',
@@ -366,8 +385,9 @@ router.put('/labels', async (req, res) => {
 router.delete('/', async (req, res) => {
   try {
     const leads = JSON.parse(req.query.leads);
-    leads.map((l) => {
-      const { error } = validateObjectId({ _id: l });
+
+    for (lead of leads) {
+      const { error } = validateObjectId({ _id: lead });
       if (error)
         return res.status(400).send({
           field: {
@@ -375,7 +395,8 @@ router.delete('/', async (req, res) => {
             name: error.details[0].path[0],
           },
         });
-    });
+    }
+
     await Lead.deleteMany({
       _id: { $in: leads },
     });

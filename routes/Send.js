@@ -24,7 +24,9 @@ router.post('/', upload.array('file'), async (req, res) => {
         path.extname(req.files[0].originalname)
     );
     deleteFile(req.files[0].path);
-    res.send('failure');
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
   }
 });
 

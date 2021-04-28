@@ -7,7 +7,7 @@ const { validateObjectId } = require('./RouteHelpers/Common');
 router.post('/', async (req, res) => {
   try {
     const { ...template } = req.body;
-
+    console.log(template);
     const { error } = validateTemplate(template);
     if (error)
       return res.status(400).send({
@@ -24,7 +24,7 @@ router.post('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'title',
-          message: 'A Template with this title already Exist',
+          message: 'A Template with this name already exist',
         },
       });
 

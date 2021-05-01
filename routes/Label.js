@@ -26,7 +26,8 @@ router.post('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'name',
-          message: 'Sorry, duplicate label found with the same name. Name should be unique.',
+          message:
+            'Sorry, duplicate label found with the same name. Name should be unique.',
         },
       });
     }
@@ -148,7 +149,8 @@ router.put('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'title',
-          message: 'Sorry, duplicate label found with the same name. Name should be unique.',
+          message:
+            'Sorry, duplicate label found with the same name. Name should be unique.',
         },
       });
     }

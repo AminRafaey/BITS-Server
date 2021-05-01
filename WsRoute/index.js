@@ -14,8 +14,7 @@ module.exports = function (io) {
     socket.on('get-qr', () => {
       async function connectToWhatsApp() {
         const conn = new WAConnection();
-
-        conn.connectOptions.maxRetries = 5;
+        conn.connectOptions.maxRetries = 1;
 
         conn.on('qr', (qr) => {
           io.to(socket.id).emit('get-qr', qr);
@@ -176,6 +175,14 @@ module.exports = function (io) {
             deleteFile(path.join(__dirname, '../public/media', mediaPath));
           }
         });
+        conn.on('close', ({ reason, isReconnecting }) =>
+          console.log(
+            'oh no got disconnected: ' +
+              reason +
+              ', reconnecting: ' +
+              isReconnecting
+          )
+        );
       }
       connectToWhatsApp().catch((err) => {
         io.to(socket.id).emit('no-qr', null);

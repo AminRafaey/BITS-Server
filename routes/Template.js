@@ -7,7 +7,7 @@ const { validateObjectId } = require('./RouteHelpers/Common');
 router.post('/', async (req, res) => {
   try {
     const { ...template } = req.body;
-
+    
     const { error } = validateTemplate(template);
     if (error)
       return res.status(400).send({
@@ -18,13 +18,13 @@ router.post('/', async (req, res) => {
       });
 
     let templateInDb = await Template.findOne({
-      title: template.title,
+      title: { $regex: new RegExp('^' + template.title + '$', 'i') },
     });
     if (templateInDb)
       return res.status(400).send({
         field: {
           name: 'title',
-          message: 'A Template with this title already Exist',
+          message: 'A Template with this name already exist',
         },
       });
 

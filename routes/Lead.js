@@ -63,7 +63,7 @@ router.post('/create', async (req, res) => {
     if (
       email &&
       (await Lead.findOne({
-        email: email,
+        email: { $regex: new RegExp('^' + email + '$', 'i') },
       }))
     ) {
       return res.status(400).send({
@@ -308,7 +308,7 @@ router.put('/', async (req, res) => {
       email &&
       (await Lead.findOne().and([
         {
-          email: email,
+          email: { $regex: new RegExp('^' + email + '$', 'i') },
         },
         { _id: { $ne: _id } },
       ]))
@@ -701,7 +701,7 @@ router.post('/csvUpload', async (req, res) => {
               if (
                 email &&
                 (await Lead.findOne({
-                  email: email,
+                  email: { $regex: new RegExp('^' + email + '$', 'i') },
                 }))
               ) {
                 rejectBczOfERepetition++;

@@ -18,7 +18,7 @@ router.post('/', async (req, res) => {
       });
 
     let templateInDb = await Template.findOne({
-      title: template.title,
+      title: { $regex: new RegExp('^' + template.title + '$', 'i') },
     });
     if (templateInDb)
       return res.status(400).send({

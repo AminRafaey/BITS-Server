@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
 
     if (
       await Label.findOne({
-        title: title,
+        title: { $regex: new RegExp('^' + title + '$', 'i') },
       })
     ) {
       return res.status(400).send({

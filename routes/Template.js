@@ -7,7 +7,7 @@ const { validateObjectId } = require('./RouteHelpers/Common');
 router.post('/', async (req, res) => {
   try {
     const { ...template } = req.body;
-    console.log(template);
+    
     const { error } = validateTemplate(template);
     if (error)
       return res.status(400).send({

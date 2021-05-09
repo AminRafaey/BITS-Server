@@ -556,6 +556,8 @@ router.put('/addNote', async (req, res) => {
 router.post('/csvUpload', async (req, res) => {
   const csvFolderName = __dirname + '/../public/csv';
 
+  !fs.existsSync(csvFolderName) && fs.mkdirSync(csvFolderName);
+
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
       cb(null, csvFolderName);

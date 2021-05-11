@@ -29,7 +29,7 @@ module.exports = function (io) {
             io.to(socket.id).emit('chats-received', conn.chats);
             socket.personal.isChatsSent = true;
           } else {
-            io.to(socket.id).emit('chats-received', {});
+            io.to(socket.id).emit('chats-received', []);
           }
         });
 
@@ -72,11 +72,13 @@ module.exports = function (io) {
                     lead[k.value]
                   );
                 });
-              conn.sendMessage(
-                `${number}@s.whatsapp.net`,
-                convertedMsg,
-                MessageType.text
-              );
+              const exists = await conn.isOnWhatsApp(number);
+              exists &&
+                conn.sendMessage(
+                  `${number}@s.whatsapp.net`,
+                  convertedMsg,
+                  MessageType.text
+                );
             }
             cb();
           }
@@ -99,14 +101,16 @@ module.exports = function (io) {
                       lead[k.value]
                     );
                   });
-                conn.sendMessage(
-                  `${number}@s.whatsapp.net`,
-                  buffer,
-                  MessageType.image,
-                  {
-                    caption: convertedMsg,
-                  }
-                );
+                const exists = await conn.isOnWhatsApp(number);
+                exists &&
+                  conn.sendMessage(
+                    `${number}@s.whatsapp.net`,
+                    buffer,
+                    MessageType.image,
+                    {
+                      caption: convertedMsg,
+                    }
+                  );
               }
               cb();
               deleteFile(path.join(__dirname, '../public/media', mediaPath));
@@ -133,14 +137,16 @@ module.exports = function (io) {
                       lead[k.value]
                     );
                   });
-                conn.sendMessage(
-                  `${number}@s.whatsapp.net`,
-                  buffer,
-                  MessageType.video,
-                  {
-                    caption: convertedMsg,
-                  }
-                );
+                const exists = await conn.isOnWhatsApp(number);
+                exists &&
+                  conn.sendMessage(
+                    `${number}@s.whatsapp.net`,
+                    buffer,
+                    MessageType.video,
+                    {
+                      caption: convertedMsg,
+                    }
+                  );
               }
               cb();
               deleteFile(path.join(__dirname, '../public/media', mediaPath));
@@ -167,13 +173,16 @@ module.exports = function (io) {
                       lead[k.value]
                     );
                   });
-                conn.sendMessage(
-                  `${number}@s.whatsapp.net`,
-                  buffer,
-                  MessageType.document,
-                  { mimetype: Mimetype.pdf }
-                );
-                message &&
+                const exists = await conn.isOnWhatsApp(number);
+                exists &&
+                  conn.sendMessage(
+                    `${number}@s.whatsapp.net`,
+                    buffer,
+                    MessageType.document,
+                    { mimetype: Mimetype.pdf }
+                  );
+                exists &&
+                  message &&
                   conn.sendMessage(
                     `${number}@s.whatsapp.net`,
                     convertedMsg,
@@ -189,6 +198,7 @@ module.exports = function (io) {
           }
         );
         conn.on('close', ({ reason, isReconnecting }) => {
+          console.log('here', reason);
           io.to(socket.id).emit('disconnected', {
             message: 'Disconnected from WhatsApp: ' + reason,
             currentConnRef: currentConnRef,

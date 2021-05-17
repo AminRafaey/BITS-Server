@@ -60,7 +60,7 @@ module.exports = function (io) {
         await conn.connect();
 
         conn.on('chat-new', (chat) => {
-          socket.emit('chat-new', chat);
+          io.to(socket.id).emit('chat-new', chat);
         });
 
         conn.on('chat-update', async (chat) => {
@@ -104,7 +104,7 @@ module.exports = function (io) {
             sender += ' (' + m.key.participant + ')';
           } else {
             m.key.remoteJid.split('@')[1] === 's.whatsapp.net' &&
-              socket.emit('new-message', m);
+            io.to(socket.id).emit('new-message', m);
           }
         });
 

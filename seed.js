@@ -130,14 +130,14 @@ async function seed() {
   //   await new Lead(lead).save();
   // }
 
-  // for (let template of templates) {
-  //   const { error } = validateTemplate(template);
-  //   if (error) {
-  //     console.log(error.details[0].message);
-  //     return;
-  //   }
-  //   await new Template(template).save();
-  // }
+  for (let template of templates) {
+    const { error } = validateTemplate(template);
+    if (error) {
+      console.log(error.details[0].message);
+      return;
+    }
+    await new Template(template).save();
+  }
 
   // for (let customer of customers) {
   //   const { error } = validateCustomer(customer);
@@ -148,14 +148,14 @@ async function seed() {
   //   await new Customer(customer).save();
   // }
 
-  for (let label of labels) {
-    const { error } = validateLabel(label);
-    if (error) {
-      console.log(error.details[0].message);
-      return;
-    }
-    await new Label(label).save();
-  }
+  // for (let label of labels) {
+  //   const { error } = validateLabel(label);
+  //   if (error) {
+  //     console.log(error.details[0].message);
+  //     return;
+  //   }
+  //   await new Label(label).save();
+  // }
 
   mongoose.disconnect();
   console.info('Done!');

@@ -104,7 +104,7 @@ module.exports = function (io) {
             sender += ' (' + m.key.participant + ')';
           } else {
             m.key.remoteJid.split('@')[1] === 's.whatsapp.net' &&
-            io.to(socket.id).emit('new-message', m);
+              io.to(socket.id).emit('new-message', m);
           }
         });
 
@@ -117,7 +117,10 @@ module.exports = function (io) {
           'send-text-message',
           async ({ mobileNumbers, message }, arg2, cb) => {
             for (number of mobileNumbers) {
+              number = number.replace('+', '');
+
               const lead = await Lead.findOne({ phone: `+${number}` });
+
               let convertedMsg = message;
               lead &&
                 keywords.map((k) => {
@@ -146,6 +149,7 @@ module.exports = function (io) {
                 path.join(__dirname, '../public/media', mediaPath)
               );
               for (number of JSON.parse(mobileNumbers)) {
+                number = number.replace('+', '');
                 const lead = await Lead.findOne({ phone: `+${number}` });
                 let convertedMsg = message;
                 lead &&
@@ -182,6 +186,7 @@ module.exports = function (io) {
                 path.join(__dirname, '../public/media', mediaPath)
               );
               for (number of JSON.parse(mobileNumbers)) {
+                number = number.replace('+', '');
                 const lead = await Lead.findOne({ phone: `+${number}` });
                 let convertedMsg = message;
                 lead &&
@@ -218,6 +223,7 @@ module.exports = function (io) {
                 path.join(__dirname, '../public/media', mediaPath)
               );
               for (number of JSON.parse(mobileNumbers)) {
+                number = number.replace('+', '');
                 const lead = await Lead.findOne({ phone: `+${number}` });
                 let convertedMsg = message;
                 lead &&

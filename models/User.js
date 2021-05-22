@@ -43,7 +43,8 @@ schema.methods.generateAuthToken = function () {
       email: this.email,
       userName: this.userName,
       type: this.type,
-      createdAt: new Date()
+      mobileNumber: this.adminId.mobileNumber,
+      createdAt: new Date(),
     },
     config.get('jwtPrivateKey')
   );

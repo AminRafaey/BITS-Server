@@ -17,11 +17,10 @@ router.post('/', async (req, res) => {
 
     const { email, userName, password } = req.body;
 
-    const user = await User.findOne().or([
-      { email: email },
-      { userName: userName },
-    ]);
-
+    const user = await User.findOne()
+      .or([{ email: email }, { userName: userName }])
+      .populate('adminId');
+    console.log(user);
     if (!user || (user && user.verified == null)) {
       if (user && user.verified == null)
         return res.status(400).send({

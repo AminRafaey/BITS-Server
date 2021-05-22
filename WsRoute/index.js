@@ -142,6 +142,14 @@ module.exports = function (io) {
         );
 
         socket.on(
+          'send-text-message-on-group',
+          async ({ groupId, message }, arg2, cb) => {
+            conn.sendMessage(groupId, message, MessageType.text);
+            cb();
+          }
+        );
+
+        socket.on(
           'send-image',
           async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
             try {

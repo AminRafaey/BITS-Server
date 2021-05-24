@@ -1,16 +1,11 @@
-const {
-  MessageType,
-  Mimetype,
-} = require('@adiwajshing/baileys');
+const { MessageType, Mimetype } = require('@adiwajshing/baileys');
 const { keywords } = require('../Static/Keyword');
 const fs = require('fs');
 const path = require('path');
 const { Lead } = require('../models/Lead');
 const { deleteFile } = require('../routes/Helper/FileHelper');
 
-const {
-  getCurrentUser,
-} = require('./utility');
+const { getCurrentUser } = require('./utility');
 
 async function sendTextMessage(
   socket,

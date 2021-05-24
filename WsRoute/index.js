@@ -1,6 +1,4 @@
-const {
-  WAConnection,
-} = require('@adiwajshing/baileys');
+const { WAConnection } = require('@adiwajshing/baileys');
 const { Customer } = require('../models/Customer');
 const {
   sendTextMessage,
@@ -121,7 +119,6 @@ module.exports = function (io) {
 
         conn.on('chat-update', async (chat) => {
           const message = recieveMessage(chat);
-          console.log(message);
           message &&
             io
               .to('+' + conn.user.jid.split('@')[0])

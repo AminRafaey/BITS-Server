@@ -1,7 +1,4 @@
-const {
-  WA_MESSAGE_STUB_TYPES,
-} = require('@adiwajshing/baileys');
-
+const { WA_MESSAGE_STUB_TYPES } = require('@adiwajshing/baileys');
 
 function recieveMessage(chat) {
   if (chat.presences) {

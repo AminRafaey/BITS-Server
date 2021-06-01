@@ -764,7 +764,9 @@ router.get('/allCompanies', async (req, res) => {
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.find().distinct('companyName'),
+        data: await Lead.find().distinct('companyName', {
+          companyName: { $nin: ['', null] },
+        }),
       },
     });
   } catch (error) {
@@ -780,7 +782,9 @@ router.get('/allLeadSources', async (req, res) => {
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.find().distinct('leadSource'),
+        data: await Lead.find().distinct('leadSource', {
+          leadSource: { $nin: ['', null] },
+        }),
       },
     });
   } catch (error) {

@@ -4,7 +4,15 @@ const { Lead, validateLead } = require('./models/Lead');
 const { Template, validateTemplate } = require('./models/Template');
 const { Customer, validateCustomer } = require('./models/Customer');
 const { Label, validateLabel } = require('./models/Label');
+const { User, validateUser } = require('./models/User');
 
+const users = [
+  {
+    email: 'aminrafaey543@gmail.com',
+    userName: 'Amin Rafaey',
+    password: '1234',
+  },
+];
 const leads = [
   {
     title: 'Fayiz',
@@ -121,6 +129,15 @@ async function seed() {
 
   // await mongoose.connection.dropDatabase();
 
+  for (let user of users) {
+    const { error } = validateUser(user);
+    if (error) {
+      console.log(error.details[0].message);
+      return;
+    }
+    await new User(user).save();
+  }
+
   // for (let lead of leads) {
   //   const { error } = validateLead(lead);
   //   if (error) {
@@ -130,14 +147,14 @@ async function seed() {
   //   await new Lead(lead).save();
   // }
 
-  for (let template of templates) {
-    const { error } = validateTemplate(template);
-    if (error) {
-      console.log(error.details[0].message);
-      return;
-    }
-    await new Template(template).save();
-  }
+  // for (let template of templates) {
+  //   const { error } = validateTemplate(template);
+  //   if (error) {
+  //     console.log(error.details[0].message);
+  //     return;
+  //   }
+  //   await new Template(template).save();
+  // }
 
   // for (let customer of customers) {
   //   const { error } = validateCustomer(customer);

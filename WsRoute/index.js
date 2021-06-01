@@ -1,16 +1,21 @@
-const {
-  WAConnection,
-  MessageType,
-  Mimetype,
-  WA_MESSAGE_STUB_TYPES,
-} = require('@adiwajshing/baileys');
-const { keywords } = require('../Static/Keyword');
-const fs = require('fs');
-const path = require('path');
+const { WAConnection } = require('@adiwajshing/baileys');
 const { Customer } = require('../models/Customer');
-const { Lead } = require('../models/Lead');
-const { deleteFile } = require('../routes/Helper/FileHelper');
-
+const {
+  sendTextMessage,
+  sendTextMessageOnGroup,
+  sendImage,
+  sendVideo,
+  sendPdf,
+} = require('./Send');
+const {
+  userJoin,
+  getCurrentUser,
+  userLeave,
+  getRoomUsers,
+  formatMessage,
+} = require('./utility');
+const { recieveMessage } = require('./Recieve');
+const connectedUsers = [];
 module.exports = function (io) {
   io.on('connection', (socket) => {
     socket.personal = {};
@@ -30,31 +35,80 @@ module.exports = function (io) {
         });
 
         conn.on('chats-received', () => {
+          console.log('chats-received-s');
           if (!socket.personal.isChatsSent) {
             io.to(socket.id).emit('chats-received', conn.chats);
+            const mobileNumber = '+' + conn.user.jid.split('@')[0];
+            const index = connectedUsers.findIndex(
+              (user) => user.mobileNumber === mobileNumber
+            );
+
+            if (index === -1) {
+              console.log(currentConnRef);
+              connectedUsers.push({
+                ...conn.user,
+                mobileNumber: mobileNumber,
+                connectedAt: new Date(),
+                chats: conn.chats,
+                currentConnRef: currentConnRef,
+                conn: conn,
+              });
+            } else {
+              connectedUsers[index] = {
+                ...connectedUsers[index],
+                chats: conn.chats,
+                conn: conn,
+              };
+            }
+            console.log('chats-received-e');
             socket.personal.isChatsSent = true;
           } else {
             io.to(socket.id).emit('chats-received', []);
           }
         });
 
-        conn.on('contacts-received', () => {
-          if (!socket.personal.isContactsSent) {
-            let arr = [];
-            Object.keys(conn.contacts).map((jid) =>
-              arr.push(conn.contacts[jid])
-            );
-            io.to(socket.id).emit('contacts-received', arr);
-            socket.personal.isContactsSent = true;
-          }
-        });
+        // conn.on('contacts-received', () => {
+        //   if (!socket.personal.isContactsSent) {
+        //     let arr = [];
+        //     Object.keys(conn.contacts).map((jid) =>
+        //       arr.push(conn.contacts[jid])
+        //     );
+        //     io.to(socket.id).emit('contacts-received', arr);
+
+        //     const index = connectedUsers.findIndex(user => user.mobileNumber === "+"+conn.user.jid.split('@')[0]);
+        //     connectedUsers[index] = {...connectedUsers[index], contacts:conn.contacts}
+
+        //     socket.personal.isContactsSent = true;
+        //   }
+        // });
 
         conn.on('credentials-updated', async () => {
+          console.log('credentials-updated-s');
           await Customer.updateOne({
             name: 'Amin',
             ...conn.base64EncodedAuthInfo(),
           });
-          io.to(socket.id).emit('connection-status', 'success');
+          const mobileNumber = '+' + conn.user.jid.split('@')[0];
+
+          const index = connectedUsers.findIndex(
+            (user) => user.mobileNumber === mobileNumber
+          );
+          if (index === -1) {
+            console.log('here');
+            connectedUsers.push({
+              ...conn.user,
+              mobileNumber,
+              connectedAt: new Date(),
+              currentConnRef: currentConnRef,
+              conn: conn,
+            });
+            console.log('there');
+          }
+          console.log('credentials-updated-e');
+          io.to(socket.id).emit('connection-status', {
+            status: 'success',
+            currentConnRef: currentConnRef,
+          });
         });
 
         await conn.connect();
@@ -64,48 +118,11 @@ module.exports = function (io) {
         });
 
         conn.on('chat-update', async (chat) => {
-          if (chat.presences) {
-            // receive presence updates -- composing, available, etc.
-            Object.values(chat.presences).forEach((presence) =>
-              console.log(
-                `${presence.name}'s presence is ${presence.lastKnownPresence} in ${chat.jid}`
-              )
-            );
-          }
-          if (chat.imgUrl) {
-            console.log('imgUrl of chat changed ', chat.imgUrl);
-            return;
-          }
-          // only do something when a new message is received
-          if (!chat.hasNewMessage) {
-            if (chat.messages) {
-              console.log('updated message: ', chat.messages.first);
-            }
-            return;
-          }
-
-          const m = chat.messages.all()[0]; // pull the new message from the update
-          const messageStubType =
-            WA_MESSAGE_STUB_TYPES[m.messageStubType] || 'MESSAGE';
-          console.log('got notification of type: ' + messageStubType);
-
-          const messageContent = m.message;
-          // if it is not a regular text or media message
-          if (!messageContent) return;
-
-          if (m.key.fromMe) {
-            console.log('relayed my own message');
-            return;
-          }
-
-          let sender = m.key.remoteJid;
-          if (m.key.participant) {
-            // participant exists if the message is in a group
-            sender += ' (' + m.key.participant + ')';
-          } else {
-            m.key.remoteJid.split('@')[1] === 's.whatsapp.net' &&
-            io.to(socket.id).emit('new-message', m);
-          }
+          const message = recieveMessage(chat);
+          message &&
+            io
+              .to('+' + conn.user.jid.split('@')[0])
+              .emit('new-message', message);
         });
 
         socket.on('get-contact-messages', async (jid) => {
@@ -113,145 +130,17 @@ module.exports = function (io) {
           io.to(socket.id).emit('get-contact-messages', { messages, jid: jid });
         });
 
-        socket.on(
-          'send-text-message',
-          async ({ mobileNumbers, message }, arg2, cb) => {
-            for (number of mobileNumbers) {
-              const lead = await Lead.findOne({ phone: `+${number}` });
-              let convertedMsg = message;
-              lead &&
-                keywords.map((k) => {
-                  convertedMsg = convertedMsg.replace(
-                    new RegExp(`__${k.title}__`, 'g'),
-                    lead[k.value]
-                  );
-                });
-              const exists = await conn.isOnWhatsApp(number);
-              exists &&
-                conn.sendMessage(
-                  `${number}@s.whatsapp.net`,
-                  convertedMsg,
-                  MessageType.text
-                );
-            }
-            cb();
-          }
-        );
-
-        socket.on(
-          'send-image',
-          async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
-            try {
-              const buffer = fs.readFileSync(
-                path.join(__dirname, '../public/media', mediaPath)
-              );
-              for (number of JSON.parse(mobileNumbers)) {
-                const lead = await Lead.findOne({ phone: `+${number}` });
-                let convertedMsg = message;
-                lead &&
-                  keywords.map((k) => {
-                    convertedMsg = convertedMsg.replace(
-                      new RegExp(`__${k.title}__`, 'g'),
-                      lead[k.value]
-                    );
-                  });
-                const exists = await conn.isOnWhatsApp(number);
-                exists &&
-                  conn.sendMessage(
-                    `${number}@s.whatsapp.net`,
-                    buffer,
-                    MessageType.image,
-                    {
-                      caption: convertedMsg,
-                    }
-                  );
-              }
-              cb();
-              deleteFile(path.join(__dirname, '../public/media', mediaPath));
-            } catch (err) {
-              deleteFile(path.join(__dirname, '../public/media', mediaPath));
-            }
-          }
-        );
-
-        socket.on(
-          'send-video',
-          async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
-            try {
-              const buffer = fs.readFileSync(
-                path.join(__dirname, '../public/media', mediaPath)
-              );
-              for (number of JSON.parse(mobileNumbers)) {
-                const lead = await Lead.findOne({ phone: `+${number}` });
-                let convertedMsg = message;
-                lead &&
-                  keywords.map((k) => {
-                    convertedMsg = convertedMsg.replace(
-                      new RegExp(`__${k.title}__`, 'g'),
-                      lead[k.value]
-                    );
-                  });
-                const exists = await conn.isOnWhatsApp(number);
-                exists &&
-                  conn.sendMessage(
-                    `${number}@s.whatsapp.net`,
-                    buffer,
-                    MessageType.video,
-                    {
-                      caption: convertedMsg,
-                    }
-                  );
-              }
-              cb();
-              deleteFile(path.join(__dirname, '../public/media', mediaPath));
-            } catch (err) {
-              deleteFile(path.join(__dirname, '../public/media', mediaPath));
-            }
-          }
-        );
-
-        socket.on(
-          'send-pdf',
-          async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
-            try {
-              const buffer = fs.readFileSync(
-                path.join(__dirname, '../public/media', mediaPath)
-              );
-              for (number of JSON.parse(mobileNumbers)) {
-                const lead = await Lead.findOne({ phone: `+${number}` });
-                let convertedMsg = message;
-                lead &&
-                  keywords.map((k) => {
-                    convertedMsg = convertedMsg.replace(
-                      new RegExp(`__${k.title}__`, 'g'),
-                      lead[k.value]
-                    );
-                  });
-                const exists = await conn.isOnWhatsApp(number);
-                exists &&
-                  conn.sendMessage(
-                    `${number}@s.whatsapp.net`,
-                    buffer,
-                    MessageType.document,
-                    { mimetype: Mimetype.pdf }
-                  );
-                exists &&
-                  message &&
-                  conn.sendMessage(
-                    `${number}@s.whatsapp.net`,
-                    convertedMsg,
-                    MessageType.text
-                  );
-              }
-              cb();
-              deleteFile(path.join(__dirname, '../public/media', mediaPath));
-            } catch (err) {
-              console.log(err);
-              deleteFile(path.join(__dirname, '../public/media', mediaPath));
-            }
-          }
-        );
         conn.on('close', ({ reason, isReconnecting }) => {
+          console.log(conn.user.name + ' is disconnected from Whatsapp');
+
+          const index = connectedUsers.findIndex(
+            (user) => user.mobileNumber === '+' + conn.user.jid.split('@')[0]
+          );
+
+          if (index !== -1) {
+            connectedUsers.splice(index, 1);
+          }
+
           io.to(socket.id).emit('disconnected', {
             message: 'Disconnected from WhatsApp: ' + reason,
             currentConnRef: currentConnRef,
@@ -261,7 +150,116 @@ module.exports = function (io) {
       connectToWhatsApp().catch((err) => {
         io.to(socket.id).emit('no-qr', null);
         console.log('unexpected error: ' + err);
+
+        const index = connectedUsers.findIndex(
+          (user) => user.mobileNumber === getCurrentUser(socket.id).room
+        );
+
+        io.to(socket.id).emit('disconnected', {
+          message: 'Disconnected from WhatsApp: ' + err,
+          currentConnRef: connectedUsers[index].currentConnRef,
+        });
+
+        if (index !== -1) {
+          connectedUsers.splice(index, 1);
+        }
       });
+    });
+
+    socket.on(
+      'send-text-message',
+      async ({ mobileNumbers, message }, arg2, cb) => {
+        sendTextMessage(socket, connectedUsers, mobileNumbers, message, cb);
+      }
+    );
+
+    socket.on(
+      'send-text-message-on-group',
+      async ({ groupId, message }, arg2, cb) => {
+        sendTextMessageOnGroup(socket, connectedUsers, groupId, message, cb);
+      }
+    );
+
+    socket.on(
+      'send-image',
+      async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
+        sendImage(
+          socket,
+          connectedUsers,
+          mobileNumbers,
+          message,
+          mediaPath,
+          cb
+        );
+      }
+    );
+
+    socket.on(
+      'send-video',
+      async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
+        sendVideo(
+          socket,
+          connectedUsers,
+          mobileNumbers,
+          message,
+          mediaPath,
+          cb
+        );
+      }
+    );
+
+    socket.on(
+      'send-pdf',
+      async ({ mobileNumbers, message, mediaPath }, arg2, cb) => {
+        sendPdf(socket, connectedUsers, mobileNumbers, message, mediaPath, cb);
+      }
+    );
+
+    socket.on('join-room', ({ userName, mobileNumber }) => {
+      const user = userJoin(socket.id, userName, mobileNumber);
+
+      socket.join(user.room);
+
+      const index = connectedUsers.findIndex(
+        (user) => user.mobileNumber === mobileNumber
+      );
+      if (index !== -1) {
+        io.to(socket.id).emit('connection-status', {
+          status: 'success',
+          currentConnRef: connectedUsers[index]['currentConnRef'],
+        });
+        io.to(socket.id).emit('chats-received', connectedUsers[index].chats);
+      }
+
+      // Broadcast when a user connects
+      io.to(user.room).emit(
+        'room-updates',
+        formatMessage('BITS', `${user.userName} has joined`)
+      );
+
+      io.to(user.room).emit('room-users', {
+        room: user.room,
+        users: getRoomUsers(user.room),
+      });
+    });
+
+    socket.on('disconnect', () => {
+      const user = userLeave(socket.id);
+
+      if (user) {
+        socket.broadcast
+          .to(user.room)
+          .emit(
+            'room-updates',
+            formatMessage('BITS', `${user.userName} has left`)
+          );
+
+        // Send users and room info
+        socket.broadcast.to(user.room).emit('room-users', {
+          room: user.room,
+          users: getRoomUsers(user.room).filter((u) => u.id !== socket.id),
+        });
+      }
     });
   });
 };

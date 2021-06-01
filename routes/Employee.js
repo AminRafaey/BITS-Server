@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const phone = require('phone');
-const { Admin, validateAdmin } = require('../models/Admin');
+const { Employee, validateEmployee } = require('../models/Employee');
+const { Admin } = require('../models/Admin');
 const { User } = require('../models/User');
 
 router.post('/', async (req, res) => {
   try {
-    const { error } = validateAdmin(req.body);
+    const { error } = validateEmployee(req.body);
     if (error) {
       return res.status(400).send({
         field: {
@@ -16,9 +17,9 @@ router.post('/', async (req, res) => {
         },
       });
     }
-    const { email, password, userName, ...adminData } = req.body;
+    const { email, password, userName, adminId, ...employeeData } = req.body;
 
-    if (phone(adminData.mobileNumber).length === 0) {
+    if (phone(employeeData.mobileNumber).length === 0) {
       return res.status(400).send({
         field: {
           name: 'mobileNumber',
@@ -28,13 +29,13 @@ router.post('/', async (req, res) => {
     }
 
     if (
-      await Admin.findOne({
-        mobileNumber: adminData.mobileNumber,
+      await Employee.findOne({
+        mobileNumber: employeeData.mobileNumber,
       })
     ) {
       return res.status(400).send({
         field: {
-          name: 'Admin',
+          name: 'mobileNumber',
           message: 'Mobile number already exist',
         },
       });
@@ -65,16 +66,27 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const admin = await new Admin(adminData).save();
+    if (!(await Admin.findById(adminId))) {
+      return res.status(400).send({
+        field: {
+          name: 'adminId',
+          message: 'No Admin with this id exist',
+        },
+      });
+    }
+
+    const employee = await new Employee(employeeData).save();
+
     const user = await new User({
       email,
       userName,
       password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
-      adminId: admin._id,
-      type: 'Admin',
+      adminId: adminId,
+      employeeId: employee._id,
+      type: 'Employee',
     })
       .save()
-      .then((res) => res.populate('adminId').execPopulate());
+      .then((res) => res.populate('adminId employeeId').execPopulate());
 
     const token = user.generateAuthToken();
 

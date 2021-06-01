@@ -15,7 +15,7 @@ function validateAdmin(admin) {
       .required(),
     userName: Joi.string().required(),
     password: Joi.string().trim().strict().min(4).max(30).required(),
-    type: Joi.string().valid('Admin', 'teamMember').optional(),
+    type: Joi.string().valid('Admin').optional(),
     mobileNumber: Joi.string().required(),
   });
   return schema.validate(admin);

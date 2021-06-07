@@ -26,6 +26,13 @@ const schema = new mongoose.Schema({
   mobileNumber: {
     type: String,
     required: true,
+    unique: true,
+  },
+
+  email: {
+    type: String,
+    required: true,
+    unique: true,
   },
 
   joiningDate: {
@@ -50,13 +57,9 @@ function validateEmployee(employee) {
     status: Joi.string().valid('Active', 'Blocked').required(),
     mobileNumber: Joi.string().required(),
     joiningDate: Joi.date().required(),
-    adminId: Joi.objectId().required(),
     email: Joi.string()
       .email({ tlds: { allow: true } })
       .required(),
-    userName: Joi.string().required(),
-    password: Joi.string().trim().strict().min(4).max(30).required(),
-    type: Joi.string().valid('Employee').optional(),
   });
   return schema.validate(employee);
 }

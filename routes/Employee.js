@@ -22,7 +22,8 @@ router.post('/', async (req, res) => {
         },
       });
     }
-    const { email, password, userName, adminId, ...employeeData } = req.body;
+
+    const { ...employeeData } = req.body;
 
     if (phone(employeeData.mobileNumber).length === 0) {
       return res.status(400).send({
@@ -45,10 +46,9 @@ router.post('/', async (req, res) => {
         },
       });
     }
-
     if (
-      await User.findOne({
-        email: email,
+      await Employee.findOne({
+        email: employeeData.email,
       })
     ) {
       return res.status(400).send({
@@ -58,53 +58,16 @@ router.post('/', async (req, res) => {
         },
       });
     }
-    if (
-      await User.findOne({
-        userName: userName,
-      })
-    ) {
-      return res.status(400).send({
-        field: {
-          name: 'user name',
-          message: 'User Name already Exist',
-        },
-      });
-    }
-
-    if (!(await Admin.findById(adminId))) {
-      return res.status(400).send({
-        field: {
-          name: 'adminId',
-          message: 'No Admin with this id exist',
-        },
-      });
-    }
 
     const employee = await new Employee(employeeData).save();
 
-    const user = await new User({
-      email,
-      userName,
-      password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
-      adminId: adminId,
-      employeeId: employee._id,
-      type: 'Employee',
-    })
-      .save()
-      .then((res) => res.populate('adminId employeeId').execPopulate());
-
-    const token = user.generateAuthToken();
-
-    res
-      .header('x-auth-token', token)
-      .header('access-control-expose-headers', 'x-auth-token')
-      .status(200)
-      .send({
-        field: {
-          message: 'Successfully registered',
-          name: 'successful',
-        },
-      });
+    res.status(200).send({
+      field: {
+        message: 'Successfully registered',
+        name: 'successful',
+        data: employee,
+      },
+    });
   } catch (error) {
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
@@ -169,6 +132,7 @@ router.get('/filter', async (req, res) => {
       designations = [{}],
       mobileNumbers = [{}],
       statuses = [{}],
+      emails = [{}],
     } = req.query;
 
     const { error } = validateFilter(req.query);
@@ -188,6 +152,7 @@ router.get('/filter', async (req, res) => {
         { $or: [...designations] },
         { $or: [...mobileNumbers] },
         { $or: [...statuses] },
+        { $or: [...emails] },
       ],
     });
 
@@ -211,7 +176,7 @@ router.put('/', async (req, res) => {
   try {
     const { _id, createdAt, __v, updatedAt, ...data } = req.body;
 
-    const { error } = validateEmployeeUpdate(data);
+    const { error } = validateEmployee(data);
     if (error)
       return res.status(400).send({
         field: {
@@ -232,19 +197,19 @@ router.put('/', async (req, res) => {
     if (!(await Employee.findById(_id))) {
       return res.status(400).send({
         field: {
-          name: 'Employee Id',
+          name: 'employeeId',
           message: 'No Employee with this Id exist',
         },
       });
     }
 
-    const { mobileNumber } = data;
+    const { mobileNumber, email } = data;
 
     if (mobileNumber && phone(mobileNumber).length === 0) {
       return res.status(400).send({
         field: {
-          name: 'phone',
-          message: 'Phone number is not valid',
+          name: 'mobileNumber',
+          message: 'mobile number is not valid',
         },
       });
     }
@@ -260,9 +225,27 @@ router.put('/', async (req, res) => {
     ) {
       return res.status(400).send({
         field: {
-          name: 'phone',
+          name: 'mobileNumber',
           message:
-            'Sorry, duplicate Employee found with the same phone number.',
+            'Sorry, duplicate Employee found with the same mobile number.',
+        },
+      });
+    }
+
+    if (
+      email &&
+      (await Employee.findOne().and([
+        {
+          email: email,
+        },
+        { _id: { $ne: _id } },
+      ]))
+    ) {
+      return res.status(400).send({
+        field: {
+          name: 'email',
+          message:
+            'Sorry, duplicate Employee found with the same mobile number.',
         },
       });
     }

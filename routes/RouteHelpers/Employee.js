@@ -39,6 +39,15 @@ const validateFilter = (filters) => {
           .required()
       )
       .optional(),
+    emails: Joi.array()
+      .items(
+        Joi.object()
+          .keys({
+            email: Joi.optional(),
+          })
+          .required()
+      )
+      .optional(),
     statuses: Joi.array()
       .items(
         Joi.object()
@@ -60,6 +69,9 @@ const validateEmployeeUpdate = (data) => {
     status: Joi.string().valid('Active', 'Blocked').required(),
     mobileNumber: Joi.string().required(),
     joiningDate: Joi.date().required(),
+    email: Joi.string()
+      .email({ tlds: { allow: true } })
+      .required(),
   });
   return schema.validate(data);
 };

@@ -301,4 +301,22 @@ router.delete('/', async (req, res) => {
   }
 });
 
+router.get('/allDesignations', async (req, res) => {
+  try {
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully Fetched',
+        data: await Employee.find().distinct('designation', {
+          designation: { $nin: ['', null] },
+        }),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
 module.exports = router;

@@ -8,6 +8,7 @@ const { User } = require('../models/User');
 const {
   validateFilter,
   validateEmployeeUpdate,
+  validateEmployeeAccessUpdate,
 } = require('./RouteHelpers/Employee');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
@@ -267,6 +268,58 @@ router.put('/', async (req, res) => {
         name: 'successful',
         message: 'Successfully updated',
         data: await Employee.findById(_id),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.put('/access', async (req, res) => {
+  try {
+    const { employees } = req.body;
+    for (let employee of employees) {
+      const { error } = validateEmployeeAccessUpdate(employee);
+      if (error)
+        return res.status(400).send({
+          field: {
+            message: error.details[0].message,
+            name: error.details[0].path[0],
+          },
+        });
+    }
+
+    for (let employee of employees) {
+      const {
+        _id,
+        quickSend,
+        contactManagement,
+        templateManagement,
+        labelManagement,
+        inbox,
+      } = employee;
+      await Employee.updateOne(
+        { _id: _id },
+        {
+          ...{
+            quickSend,
+            contactManagement,
+            templateManagement,
+            labelManagement,
+            inbox,
+          },
+          updatedAt: Date(),
+        }
+      );
+    }
+
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully updated',
+        data: [],
       },
     });
   } catch (error) {

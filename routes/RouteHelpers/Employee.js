@@ -76,5 +76,25 @@ const validateEmployeeUpdate = (data) => {
   return schema.validate(data);
 };
 
+const validateEmployeeAccessUpdate = (data) => {
+  const schema = Joi.object({
+    firstName: Joi.string().required(),
+    lastName: Joi.string().allow('').optional(),
+    designation: Joi.string().required(),
+    status: Joi.string().valid('Active', 'Blocked').required(),
+    mobileNumber: Joi.string().required(),
+    joiningDate: Joi.date().required(),
+    email: Joi.string()
+      .email({ tlds: { allow: true } })
+      .required(),
+    quickSend: Joi.string().valid('allow', 'not-allow').required(),
+    contactManagement: Joi.string().valid('allow', 'not-allow').required(),
+    templateManagement: Joi.string().valid('allow', 'not-allow').required(),
+    labelManagement: Joi.string().valid('allow', 'not-allow').required(),
+    inbox: Joi.string().valid('allow', 'not-allow').required(),
+  });
+  return schema.validate(data);
+};
+
 exports.validateFilter = validateFilter;
 exports.validateEmployeeUpdate = validateEmployeeUpdate;

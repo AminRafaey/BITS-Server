@@ -174,7 +174,18 @@ router.get('/filter', async (req, res) => {
 
 router.put('/', async (req, res) => {
   try {
-    const { _id, createdAt, __v, updatedAt, ...data } = req.body;
+    const {
+      _id,
+      quickSend,
+      contactManagement,
+      templateManagement,
+      labelManagement,
+      inbox,
+      createdAt,
+      __v,
+      updatedAt,
+      ...data
+    } = req.body;
 
     const { error } = validateEmployee(data);
     if (error)
@@ -244,8 +255,7 @@ router.put('/', async (req, res) => {
       return res.status(400).send({
         field: {
           name: 'email',
-          message:
-            'Sorry, duplicate Employee found with the same mobile number.',
+          message: 'Sorry, duplicate Employee found with the same email.',
         },
       });
     }

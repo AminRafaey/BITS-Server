@@ -100,6 +100,14 @@ const validateEmployeeAccessUpdate = (data) => {
   return schema.validate(data);
 };
 
+const validateEmployeeStatus = (data) => {
+  const schema = Joi.object({
+    status: Joi.string().valid('Active', 'Blocked').required(),
+  });
+  return schema.validate(data);
+};
+
 exports.validateFilter = validateFilter;
 exports.validateEmployeeUpdate = validateEmployeeUpdate;
 exports.validateEmployeeAccessUpdate = validateEmployeeAccessUpdate;
+exports.validateEmployeeStatus = validateEmployeeStatus;

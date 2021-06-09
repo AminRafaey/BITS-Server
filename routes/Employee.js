@@ -8,6 +8,7 @@ const { User } = require('../models/User');
 const {
   validateFilter,
   validateEmployeeUpdate,
+  validateEmployeeStatus,
   validateEmployeeAccessUpdate,
 } = require('./RouteHelpers/Employee');
 const { validateObjectId } = require('./RouteHelpers/Common');
@@ -373,6 +374,56 @@ router.get('/allDesignations', async (req, res) => {
         data: await Employee.find().distinct('designation', {
           designation: { $nin: ['', null] },
         }),
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.put('/status', async (req, res) => {
+  try {
+    const { _id, status } = req.body;
+
+    const { error } = validateEmployeeStatus({ status: status });
+    if (error)
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: error.details[0].path[0],
+        },
+      });
+    const { error: error2 } = validateObjectId({ _id: _id });
+    if (error2) {
+      return res.status(400).send({
+        field: {
+          message: error2.details[0].message,
+          name: error2.details[0].path[0],
+        },
+      });
+    }
+
+    if (!(await Employee.findById(_id))) {
+      return res.status(400).send({
+        field: {
+          name: 'employeeId',
+          message: 'No Employee with this Id exist',
+        },
+      });
+    }
+
+    await Employee.updateOne(
+      { _id: _id },
+      { status: status, updatedAt: Date() }
+    );
+
+    res.status(200).send({
+      field: {
+        name: 'successful',
+        message: 'Successfully updated',
+        data: await Employee.findById(_id),
       },
     });
   } catch (error) {

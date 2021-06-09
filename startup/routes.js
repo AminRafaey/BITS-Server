@@ -7,6 +7,7 @@ const Template = require('../routes/Template');
 const Label = require('../routes/Label');
 const Auth = require('../routes/Auth');
 const Admin = require('../routes/Admin');
+const Employee = require('../routes/Employee');
 
 module.exports = function (app) {
   app.use(express.json({ limit: '1mb' }));
@@ -19,4 +20,5 @@ module.exports = function (app) {
   app.use('/label', Label);
   app.use('/auth', Auth);
   app.use('/admin', Admin);
+  app.use('/employee', Employee);
 };

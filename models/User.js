@@ -19,16 +19,16 @@ const schema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Admin', 'teamMember'],
+    enum: ['Admin', 'Employee'],
     default: 'Admin',
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin',
   },
-  teamMemberId: {
+  employeeId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'TeamMember',
+    ref: 'Employee',
   },
   verified: {
     type: Date,
@@ -44,6 +44,7 @@ schema.methods.generateAuthToken = function () {
       userName: this.userName,
       type: this.type,
       mobileNumber: this.adminId.mobileNumber,
+      ...(this.employeeId && { adminId: this.adminId._id }),
       createdAt: new Date(),
     },
     config.get('jwtPrivateKey')
@@ -57,9 +58,9 @@ function validateUser(user) {
       .required(),
     userName: Joi.string().required(),
     password: Joi.string().trim().strict().min(4).max(30).required(),
-    type: Joi.string().valid('Admin', 'teamMember').optional(),
+    type: Joi.string().valid('Admin', 'Employee').optional(),
     adminId: Joi.objectId().optional(),
-    teamMemberId: Joi.objectId().optional(),
+    employeeId: Joi.objectId().optional(),
     verified: Joi.optional(),
   });
   return schema.validate(user);

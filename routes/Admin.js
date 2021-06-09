@@ -72,7 +72,9 @@ router.post('/', async (req, res) => {
       password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
       adminId: admin._id,
       type: 'Admin',
-    }).save();
+    })
+      .save()
+      .then((res) => res.populate('adminId').execPopulate());
 
     const token = user.generateAuthToken();
 

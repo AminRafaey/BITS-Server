@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
 Joi.objectId = require('joi-objectid')(Joi);
+const jwt = require('jsonwebtoken');
+const config = require('config');
 
 const schema = new mongoose.Schema({
   firstName: {
@@ -19,8 +21,8 @@ const schema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['Active', 'Blocked'],
-    default: 'Active',
+    enum: ['Active', 'Blocked', 'Not-Verified'],
+    default: 'Not-Verified',
   },
 
   mobileNumber: {
@@ -38,6 +40,11 @@ const schema = new mongoose.Schema({
   joiningDate: {
     type: Date,
     required: true,
+  },
+
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
   },
 
   createdAt: {
@@ -74,12 +81,23 @@ const schema = new mongoose.Schema({
   },
 });
 
+schema.methods.generateVerificationToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      createdAt: new Date(),
+    },
+    config.get('jwtPrivateKey')
+  );
+};
+
 function validateEmployee(employee) {
   const schema = Joi.object({
+    adminId: Joi.objectId().required(),
     firstName: Joi.string().required(),
     lastName: Joi.string().allow('').optional(),
     designation: Joi.string().required(),
-    status: Joi.string().valid('Active', 'Blocked').required(),
     mobileNumber: Joi.string().required(),
     joiningDate: Joi.date().required(),
     email: Joi.string()

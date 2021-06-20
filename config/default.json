@@ -1,5 +1,7 @@
 {
   "db": "mongodb://localhost/BITS",
   "port": "4000",
-  "jwtPrivateKey": "jwtPrivateKey"
+  "jwtPrivateKey": "jwtPrivateKey",
+  "USER": "businessdotitsolutions@gmail.com",
+  "PASS": "Kuku10uku"
 }

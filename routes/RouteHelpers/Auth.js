@@ -1,4 +1,5 @@
 const Joi = require('joi');
+Joi.objectId = require('joi-objectid')(Joi);
 
 function validateUserForLogin(user) {
   const schema = Joi.object({
@@ -21,4 +22,13 @@ function validateUserForLogin(user) {
   return schema.validate(user);
 }
 
+function validateEmployeeAccount(user) {
+  const schema = Joi.object({
+    employeeId: Joi.objectId().required(),
+    userName: Joi.string().required(),
+    password: Joi.string().trim().strict().min(4).max(30).required(),
+  });
+  return schema.validate(user);
+}
 exports.validateUserForLogin = validateUserForLogin;
+exports.validateEmployeeAccount = validateEmployeeAccount;

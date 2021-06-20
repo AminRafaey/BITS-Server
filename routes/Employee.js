@@ -12,6 +12,7 @@ const {
   validateEmployeeAccessUpdate,
 } = require('./RouteHelpers/Employee');
 const { validateObjectId } = require('./RouteHelpers/Common');
+const { sendEmployeeVerificationEmail } = require('./Helper/Email');
 
 router.post('/', async (req, res) => {
   try {
@@ -49,9 +50,12 @@ router.post('/', async (req, res) => {
       });
     }
     if (
-      await Employee.findOne({
+      (await Employee.findOne({
         email: employeeData.email,
-      })
+      })) ||
+      (await User.findOne({
+        email: employeeData.email,
+      }))
     ) {
       return res.status(400).send({
         field: {
@@ -61,16 +65,76 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (
+      !(await Admin.findOne({
+        _id: employeeData.adminId,
+      }))
+    ) {
+      return res.status(400).send({
+        field: {
+          name: 'adminId',
+          message: 'No Admin belongs to the provided admin ID',
+        },
+      });
+    }
+
     const employee = await new Employee(employeeData).save();
+    const token = employee.generateVerificationToken();
+
+
+    await sendEmployeeVerificationEmail(
+      employeeData.email,
+      token,
+      req.get('origin')
+    );
 
     res.status(200).send({
       field: {
-        message: 'Successfully registered',
+        message: 'An email has been sent successfully',
         name: 'successful',
         data: employee,
       },
     });
   } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.post('/resendVerificationEmail', async (req, res) => {
+  try {
+    const { employeeId } = req.body;
+    const { error } = validateObjectId({ _id: employeeId });
+    if (error) {
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: error.details[0].path[0],
+        },
+      });
+    }
+
+    const employee = await Employee.findById(employeeId);
+    console.log(employee);
+    const token = employee.generateVerificationToken();
+
+    await sendEmployeeVerificationEmail(
+      employee.email,
+      token,
+      req.get('origin')
+    );
+
+    res.status(200).send({
+      field: {
+        message: 'An email has been sent successfully',
+        name: 'successful',
+        data: employee,
+      },
+    });
+  } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });

@@ -40,11 +40,19 @@ schema.methods.generateAuthToken = function () {
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
       userName: this.userName,
       type: this.type,
-      mobileNumber: this.adminId.mobileNumber,
-      ...(this.employeeId && { adminId: this.adminId._id }),
+      ...(this.employeeId && {
+        quickSend: this.quickSend,
+        contactManagement: this.contactManagement,
+        templateManagement: this.templateManagement,
+        labelManagement: this.labelManagement,
+        inbox: this.inbox,
+      }),
+      ...(this.adminId && {
+        adminId: this.adminId._id,
+        mobileNumber: this.adminId.mobileNumber,
+      }),
       createdAt: new Date(),
     },
     config.get('jwtPrivateKey')

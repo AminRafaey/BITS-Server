@@ -59,6 +59,16 @@ schema.methods.generateAuthToken = function () {
   );
 };
 
+schema.methods.generateVerificationToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      createdAt: new Date(),
+    },
+    config.get('jwtPrivateKey')
+  );
+};
+
 function validateUser(user) {
   const schema = Joi.object({
     email: Joi.string()

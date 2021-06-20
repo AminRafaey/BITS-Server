@@ -81,7 +81,6 @@ router.post('/', async (req, res) => {
     const employee = await new Employee(employeeData).save();
     const token = employee.generateVerificationToken();
 
-
     await sendEmployeeVerificationEmail(
       employeeData.email,
       token,

@@ -3,8 +3,9 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const phone = require('phone');
 const { Admin, validateAdmin } = require('../models/Admin');
-const { User, generateVerificationToken } = require('../models/User');
+const { User } = require('../models/User');
 const { sendVerificationEmail } = require('./Helper/Email');
+const { validateObjectId } = require('./RouteHelpers/Common');
 
 router.post('/', async (req, res) => {
   try {
@@ -75,6 +76,46 @@ router.post('/', async (req, res) => {
       type: 'Admin',
     }).save();
 
+    const token = user.generateVerificationToken();
+    await sendVerificationEmail(user.email, token, req.get('origin'));
+
+    res.status(200).send({
+      field: {
+        message: 'An email has been sent successfully',
+        name: 'successful',
+        data: { email: user.email, _id: user._id },
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
+
+router.post('/resendVerificationEmail', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { error } = validateObjectId({ _id: userId });
+    if (error) {
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: error.details[0].path[0],
+        },
+      });
+    }
+
+    const user = await User.findById(userId);
+
+    if (user.verified) {
+      return res.status(200).send({
+        field: {
+          message: 'User is already verified',
+          name: 'successful',
+        },
+      });
+    }
     const token = user.generateVerificationToken();
     await sendVerificationEmail(user.email, token, req.get('origin'));
 

@@ -132,94 +132,41 @@ router.post('/resendVerificationEmail', async (req, res) => {
   }
 });
 
-// router.post('/', async (req, res) => {
-//   try {
-//     const { error } = validateAdmin(req.body);
-//     if (error) {
-//       return res.status(400).send({
-//         field: {
-//           message: error.details[0].message,
-//           name: error.details[0].path[0],
-//         },
-//       });
-//     }
-//     const { email, password, userName, ...adminData } = req.body;
+router.put('/accountVerification', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { error } = validateObjectId({ _id: userId });
+    if (error) {
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: error.details[0].path[0],
+        },
+      });
+    }
 
-//     if (phone(adminData.mobileNumber).length === 0) {
-//       return res.status(400).send({
-//         field: {
-//           name: 'mobileNumber',
-//           message: 'Mobile number is not valid',
-//         },
-//       });
-//     }
+    await User.updateOne({ _id: userId }, { verified: new Date() });
+    const user = await User.findById(userId);
 
-//     if (
-//       await Admin.findOne({
-//         mobileNumber: adminData.mobileNumber,
-//       })
-//     ) {
-//       return res.status(400).send({
-//         field: {
-//           name: 'Admin',
-//           message: 'Mobile number already exist',
-//         },
-//       });
-//     }
+    const token = user.generateAuthToken();
+    return res
+      .header('x-auth-token', token)
+      .header('access-control-expose-headers', 'x-auth-token')
+      .status(200)
+      .send({
+        field: {
+          message: 'An account has been verified',
+          name: 'successful',
+        },
+      });
+  } catch (error) {
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
 
-//     if (
-//       await User.findOne({
-//         email: email,
-//       })
-//     ) {
-//       return res.status(400).send({
-//         field: {
-//           name: 'email',
-//           message: 'Email already Exist',
-//         },
-//       });
-//     }
-//     if (
-//       await User.findOne({
-//         userName: userName,
-//       })
-//     ) {
-//       return res.status(400).send({
-//         field: {
-//           name: 'user name',
-//           message: 'User Name already Exist',
-//         },
-//       });
-//     }
 
-//     const admin = await new Admin(adminData).save();
-//     const user = await new User({
-//       email,
-//       userName,
-//       password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
-//       adminId: admin._id,
-//       type: 'Admin',
-//     })
-//       .save()
 //       .then((res) => res.populate('adminId').execPopulate());
-
-//     const token = user.generateVerificationToken();
-
-//     res
-//       .header('x-auth-token', token)
-//       .header('access-control-expose-headers', 'x-auth-token')
-//       .status(200)
-//       .send({
-//         field: {
-//           message: 'Successfully registered',
-//           name: 'successful',
-//         },
-//       });
-//   } catch (error) {
-//     res.status(500).send({
-//       field: { message: 'Unexpected error occured', name: 'unexpected' },
-//     });
-//   }
-// });
 
 module.exports = router;

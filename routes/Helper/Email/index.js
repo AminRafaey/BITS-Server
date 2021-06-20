@@ -4,7 +4,7 @@ const config = require('config');
 async function sendVerificationEmail(email, token, origin) {
   let message;
   if (origin) {
-    const verifyUrl = `${origin}/employeeAccount/verify-email?token=${token}`;
+    const verifyUrl = `${origin}/adminAccount/verifyEmail?token=${token}`;
     message = `<p>Please click the below link to verify your email address:</p>
                    <p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
   } else {
@@ -24,7 +24,7 @@ async function sendVerificationEmail(email, token, origin) {
 async function sendEmployeeVerificationEmail(email, token, origin) {
   let message;
   if (origin) {
-    const verifyUrl = `${origin}/employeeAccount/verify-email?token=${token}`;
+    const verifyUrl = `${origin}/employeeAccount/verifyEmail?token=${token}`;
     message = `<p>Please click the below link to verify your email address:</p>
                    <p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
   } else {

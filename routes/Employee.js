@@ -1,20 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
 const phone = require('phone');
 const { Employee, validateEmployee } = require('../models/Employee');
 const { Admin } = require('../models/Admin');
 const { User } = require('../models/User');
 const {
   validateFilter,
-  validateEmployeeUpdate,
   validateEmployeeStatus,
   validateEmployeeAccessUpdate,
+  validateEmployeeUpdate,
 } = require('./RouteHelpers/Employee');
 const { validateObjectId } = require('./RouteHelpers/Common');
 const { sendEmployeeVerificationEmail } = require('./Helper/Email');
 
-router.post('/', async (req, res) => {
+const auth = require('../Middlewares/auth');
+const isAdmin = require('../Middlewares/isAdmin');
+
+router.post('/', auth, isAdmin, async (req, res) => {
   try {
     const { error } = validateEmployee(req.body);
     if (error) {
@@ -27,6 +29,7 @@ router.post('/', async (req, res) => {
     }
 
     const { ...employeeData } = req.body;
+    const { adminId } = req.user;
 
     if (phone(employeeData.mobileNumber).length === 0) {
       return res.status(400).send({
@@ -67,7 +70,7 @@ router.post('/', async (req, res) => {
 
     if (
       !(await Admin.findOne({
-        _id: employeeData.adminId,
+        _id: adminId,
       }))
     ) {
       return res.status(400).send({
@@ -78,7 +81,10 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const employee = await new Employee(employeeData).save();
+    const employee = await new Employee({
+      ...employeeData,
+      adminId: adminId,
+    }).save();
     const token = employee.generateVerificationToken();
 
     await sendEmployeeVerificationEmail(
@@ -95,14 +101,13 @@ router.post('/', async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
   }
 });
 
-router.post('/resendVerificationEmail', async (req, res) => {
+router.post('/resendVerificationEmail', auth, isAdmin, async (req, res) => {
   try {
     const { employeeId } = req.body;
     const { error } = validateObjectId({ _id: employeeId });
@@ -116,7 +121,25 @@ router.post('/resendVerificationEmail', async (req, res) => {
     }
 
     const employee = await Employee.findById(employeeId);
-    console.log(employee);
+
+    if (!employee) {
+      return res.status(400).send({
+        field: {
+          message: 'No employee belong to the provided employee ID',
+          name: 'employeeId',
+        },
+      });
+    }
+
+    if (employee.adminId != req.user.adminId) {
+      return res.status(400).send({
+        field: {
+          message: 'This user doesnot belong to the provided admin ID',
+          name: 'adminId',
+        },
+      });
+    }
+
     const token = employee.generateVerificationToken();
 
     await sendEmployeeVerificationEmail(
@@ -133,20 +156,20 @@ router.post('/resendVerificationEmail', async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
   }
 });
 
-router.get('/all', async (req, res) => {
+router.get('/all', auth, isAdmin, async (req, res) => {
   try {
+    const { adminId } = req.user;
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Employee.find(),
+        data: await Employee.find({ adminId: adminId }),
       },
     });
   } catch (error) {
@@ -156,9 +179,10 @@ router.get('/all', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', auth, isAdmin, async (req, res) => {
   try {
     const { _id } = req.query;
+    const { adminId } = req.user;
     const { error } = validateObjectId(req.query);
     if (error) {
       return res.status(400).send({
@@ -172,7 +196,7 @@ router.get('/', async (req, res) => {
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Employee.findById(_id),
+        data: await Employee.findOne({ _id, adminId }),
       },
     });
   } catch (error) {
@@ -182,8 +206,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/filter', async (req, res) => {
+router.get('/filter', auth, isAdmin, async (req, res) => {
   try {
+    const { adminId } = req.user;
     req.query = JSON.stringify(req.query);
     req.query = JSON.parse(req.query);
     Object.keys(req.query).map(
@@ -218,6 +243,7 @@ router.get('/filter', async (req, res) => {
         { $or: [...mobileNumbers] },
         { $or: [...statuses] },
         { $or: [...emails] },
+        { adminId: adminId },
       ],
     });
 
@@ -237,7 +263,7 @@ router.get('/filter', async (req, res) => {
   }
 });
 
-router.put('/', async (req, res) => {
+router.put('/', auth, isAdmin, async (req, res) => {
   try {
     const {
       _id,
@@ -249,10 +275,11 @@ router.put('/', async (req, res) => {
       createdAt,
       __v,
       updatedAt,
+      email,
       ...data
     } = req.body;
-
-    const { error } = validateEmployee(data);
+    const { adminId } = req.user;
+    const { error } = validateEmployeeUpdate(data);
     if (error)
       return res.status(400).send({
         field: {
@@ -269,8 +296,8 @@ router.put('/', async (req, res) => {
         },
       });
     }
-
-    if (!(await Employee.findById(_id))) {
+    const employee = await Employee.findById(_id);
+    if (!employee) {
       return res.status(400).send({
         field: {
           name: 'employeeId',
@@ -278,8 +305,15 @@ router.put('/', async (req, res) => {
         },
       });
     }
-
-    const { mobileNumber, email } = data;
+    if (employee.adminId != adminId) {
+      return res.status(400).send({
+        field: {
+          name: 'adminId',
+          message: 'This employee do not belong to this admin',
+        },
+      });
+    }
+    const { mobileNumber } = data;
 
     if (mobileNumber && phone(mobileNumber).length === 0) {
       return res.status(400).send({
@@ -308,23 +342,6 @@ router.put('/', async (req, res) => {
       });
     }
 
-    if (
-      email &&
-      (await Employee.findOne().and([
-        {
-          email: email,
-        },
-        { _id: { $ne: _id } },
-      ]))
-    ) {
-      return res.status(400).send({
-        field: {
-          name: 'email',
-          message: 'Sorry, duplicate Employee found with the same email.',
-        },
-      });
-    }
-
     await Employee.updateOne({ _id: _id }, { ...data, updatedAt: Date() });
 
     res.status(200).send({
@@ -341,9 +358,10 @@ router.put('/', async (req, res) => {
   }
 });
 
-router.put('/access', async (req, res) => {
+router.put('/access', auth, isAdmin, async (req, res) => {
   try {
     const { employees } = req.body;
+    const { adminId } = req.user;
     for (let employee of employees) {
       const { error } = validateEmployeeAccessUpdate(employee);
       if (error)
@@ -365,7 +383,7 @@ router.put('/access', async (req, res) => {
         inbox,
       } = employee;
       await Employee.updateOne(
-        { _id: _id },
+        { _id: _id, adminId },
         {
           ...{
             quickSend,
@@ -393,8 +411,9 @@ router.put('/access', async (req, res) => {
   }
 });
 
-router.delete('/', async (req, res) => {
+router.delete('/', auth, isAdmin, async (req, res) => {
   try {
+    const { adminId } = req.user;
     const employeeId = req.query.employeeId;
 
     const { error } = validateObjectId({ _id: employeeId });
@@ -406,13 +425,15 @@ router.delete('/', async (req, res) => {
         },
       });
 
-    await Employee.deleteOne({
+    const deleted = await Employee.deleteOne({
       _id: employeeId,
+      adminId,
     });
 
-    await User.deleteOne({
-      employeeId: employeeId,
-    });
+    deleted.deletedCount &&
+      (await User.deleteOne({
+        employeeId: employeeId,
+      }));
 
     res.send({
       field: {
@@ -428,13 +449,14 @@ router.delete('/', async (req, res) => {
   }
 });
 
-router.get('/allDesignations', async (req, res) => {
+router.get('/allDesignations', auth, isAdmin, async (req, res) => {
   try {
+    const { adminId } = req.user;
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Employee.find().distinct('designation', {
+        data: await Employee.find({ adminId }).distinct('designation', {
           designation: { $nin: ['', null] },
         }),
       },
@@ -446,8 +468,9 @@ router.get('/allDesignations', async (req, res) => {
   }
 });
 
-router.put('/status', async (req, res) => {
+router.put('/status', auth, isAdmin, async (req, res) => {
   try {
+    const { adminId } = req.user;
     const { _id, status } = req.body;
 
     const { error } = validateEmployeeStatus({ status: status });
@@ -468,11 +491,21 @@ router.put('/status', async (req, res) => {
       });
     }
 
-    if (!(await Employee.findById(_id))) {
+    const employee = await Employee.findById(_id);
+    if (!employee) {
       return res.status(400).send({
         field: {
           name: 'employeeId',
           message: 'No Employee with this Id exist',
+        },
+      });
+    }
+
+    if (employee.adminId != adminId) {
+      return res.status(400).send({
+        field: {
+          name: 'adminId',
+          message: 'This employee do not belong to this admin',
         },
       });
     }

@@ -86,6 +86,7 @@ schema.methods.generateVerificationToken = function () {
     {
       _id: this._id,
       email: this.email,
+      type: 'Employee',
       createdAt: new Date(),
     },
     config.get('jwtPrivateKey')
@@ -94,7 +95,6 @@ schema.methods.generateVerificationToken = function () {
 
 function validateEmployee(employee) {
   const schema = Joi.object({
-    adminId: Joi.objectId().required(),
     firstName: Joi.string().required(),
     lastName: Joi.string().allow('').optional(),
     designation: Joi.string().required(),

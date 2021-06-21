@@ -63,15 +63,12 @@ const validateFilter = (filters) => {
 
 const validateEmployeeUpdate = (data) => {
   const schema = Joi.object({
-    firstName: Joi.string().required(),
+    firstName: Joi.string().optional(),
     lastName: Joi.string().allow('').optional(),
-    designation: Joi.string().required(),
-    status: Joi.string().valid('Active', 'Blocked').required(),
-    mobileNumber: Joi.string().required(),
-    joiningDate: Joi.date().required(),
-    email: Joi.string()
-      .email({ tlds: { allow: true } })
-      .required(),
+    designation: Joi.string().optional(),
+    status: Joi.string().valid('Active', 'Blocked').optional(),
+    mobileNumber: Joi.string().optional(),
+    joiningDate: Joi.date().optional(),
   });
   return schema.validate(data);
 };

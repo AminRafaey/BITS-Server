@@ -7,6 +7,8 @@ const {
 } = require('./RouteHelpers/Auth.js');
 const bcrypt = require('bcrypt');
 const { Employee } = require('../models/Employee');
+const auth = require('../Middlewares/auth');
+const isEmployee = require('../Middlewares/isEmployee');
 
 router.post('/', async (req, res) => {
   try {
@@ -24,7 +26,7 @@ router.post('/', async (req, res) => {
     const user = await User.findOne()
       .or([{ email: email }, { userName: userName }])
       .populate('adminId employeeId');
-
+    console.log(user);
     if (!user || (user && user.verified == null)) {
       if (user && user.verified == null)
         return res.status(400).send({
@@ -68,7 +70,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.post('/employeeAccount', async (req, res) => {
+router.post('/employeeAccount', auth, isEmployee, async (req, res) => {
   try {
     const { error } = validateEmployeeAccount(req.body);
     if (error) {
@@ -80,7 +82,8 @@ router.post('/employeeAccount', async (req, res) => {
       });
     }
 
-    const { employeeId, userName, password } = req.body;
+    const { userName, password } = req.body;
+    const { _id: employeeId } = req.user;
 
     if (
       await User.findOne({
@@ -119,17 +122,20 @@ router.post('/employeeAccount', async (req, res) => {
       });
     }
 
+    await Employee.updateOne(
+      { _id: employeeId },
+      { status: 'Active', updatedAt: Date() }
+    );
+
     const user = await new User({
       employeeId: employeeId,
       email: employee.email,
       userName: userName,
       password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
       type: 'Employee',
-    }).save();
-    await Employee.updateOne(
-      { _id: employeeId },
-      { status: 'Active', updatedAt: Date() }
-    );
+    })
+      .save()
+      .then((res) => res.populate('employeeId').execPopulate());
 
     const token = user.generateAuthToken();
     res
@@ -140,6 +146,7 @@ router.post('/employeeAccount', async (req, res) => {
         field: {
           message: 'Successful',
           name: 'successful',
+          data: user.employeeId,
         },
       });
   } catch (error) {

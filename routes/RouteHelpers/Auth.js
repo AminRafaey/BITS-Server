@@ -24,7 +24,6 @@ function validateUserForLogin(user) {
 
 function validateEmployeeAccount(user) {
   const schema = Joi.object({
-    employeeId: Joi.objectId().required(),
     userName: Joi.string().required(),
     password: Joi.string().trim().strict().min(4).max(30).required(),
   });

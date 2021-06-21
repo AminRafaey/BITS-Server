@@ -183,6 +183,4 @@ router.put('/accountVerification', auth, isAdmin, async (req, res) => {
   }
 });
 
-//.then((res) => res.populate('adminId').execPopulate());
-
 module.exports = router;

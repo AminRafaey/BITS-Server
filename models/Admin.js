@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
-const jwt = require('jsonwebtoken');
 
 const schema = new mongoose.Schema({
   mobileNumber: {

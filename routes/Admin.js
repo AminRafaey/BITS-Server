@@ -6,6 +6,8 @@ const { Admin, validateAdmin } = require('../models/Admin');
 const { User } = require('../models/User');
 const { sendVerificationEmail } = require('./Helper/Email');
 const { validateObjectId } = require('./RouteHelpers/Common');
+const auth = require('../Middlewares/auth');
+const isAdmin = require('../Middlewares/isAdmin');
 
 router.post('/', async (req, res) => {
   try {
@@ -132,23 +134,33 @@ router.post('/resendVerificationEmail', async (req, res) => {
   }
 });
 
-router.put('/accountVerification', async (req, res) => {
+router.put('/accountVerification', auth, isAdmin, async (req, res) => {
   try {
-    const { userId } = req.body;
-    const { error } = validateObjectId({ _id: userId });
-    if (error) {
+    const { _id } = req.user;
+
+    const user = await User.findById(_id);
+
+    if (!user) {
       return res.status(400).send({
         field: {
-          message: error.details[0].message,
-          name: error.details[0].path[0],
+          message: 'no user exist which belong to provided user ID',
+          name: 'user ID',
         },
       });
     }
+    if (user.verified) {
+      return res.status(400).send({
+        field: {
+          message: 'Account has already been verified',
+          name: 'Already verified',
+        },
+      });
+    }
+    await User.updateOne({ _id: _id }, { verified: new Date() });
 
-    await User.updateOne({ _id: userId }, { verified: new Date() });
-    const user = await User.findById(userId);
+    const admin = await Admin.findById(user.adminId);
+    const token = user.generateAuthToken(admin.mobileNumber);
 
-    const token = user.generateAuthToken();
     return res
       .header('x-auth-token', token)
       .header('access-control-expose-headers', 'x-auth-token')
@@ -157,6 +169,11 @@ router.put('/accountVerification', async (req, res) => {
         field: {
           message: 'An account has been verified',
           name: 'successful',
+          data: {
+            ...JSON.parse(JSON.stringify(user)),
+            password: 'What are you looking at?:p',
+            verified: new Date(),
+          },
         },
       });
   } catch (error) {
@@ -166,7 +183,6 @@ router.put('/accountVerification', async (req, res) => {
   }
 });
 
-
-//       .then((res) => res.populate('adminId').execPopulate());
+//.then((res) => res.populate('adminId').execPopulate());
 
 module.exports = router;

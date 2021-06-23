@@ -21,6 +21,7 @@ router.post('/', auth, hasTemplateAccess, async (req, res) => {
 
     let templateInDb = await Template.findOne({
       title: { $regex: new RegExp('^' + template.title + '$', 'i') },
+      adminId: req.user.adminId,
     });
     if (templateInDb)
       return res.status(400).send({
@@ -42,6 +43,7 @@ router.post('/', auth, hasTemplateAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -80,7 +82,7 @@ router.delete('/:_id', auth, hasTemplateAccess, async (req, res) => {
 
 router.put('/:_id', auth, hasTemplateAccess, async (req, res) => {
   try {
-    const { ...template } = req.body;
+    const { adminId, ...template } = req.body;
     const { _id } = req.params;
 
     const { error } = validateTemplateUpdate(template);

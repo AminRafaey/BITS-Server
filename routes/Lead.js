@@ -14,7 +14,12 @@ const {
 } = require('./RouteHelpers/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
-router.post('/create', async (req, res) => {
+const auth = require('../Middlewares/auth');
+const hasLeadAccess = require('../Middlewares/hasLeadAccess');
+const hasInboxAccess = require('../Middlewares/hasInboxAccess');
+const hasQuickSendAccess = require('../Middlewares/hasQuickSendAccess');
+
+router.post('/create', auth, hasInboxAccess, async (req, res) => {
   try {
     const { error } = validateLead(req.body);
     if (error) {
@@ -27,6 +32,7 @@ router.post('/create', async (req, res) => {
     }
 
     const { phone: mobileNumber, email, labels, website } = req.body;
+    const { adminId } = req.user;
 
     if (mobileNumber && phone(mobileNumber).length === 0) {
       return res.status(400).send({
@@ -50,6 +56,7 @@ router.post('/create', async (req, res) => {
       mobileNumber &&
       (await Lead.findOne({
         phone: mobileNumber,
+        adminId: adminId,
       }))
     ) {
       return res.status(400).send({
@@ -64,6 +71,7 @@ router.post('/create', async (req, res) => {
       email &&
       (await Lead.findOne({
         email: { $regex: new RegExp('^' + email + '$', 'i') },
+        adminId: adminId,
       }))
     ) {
       return res.status(400).send({
@@ -84,7 +92,7 @@ router.post('/create', async (req, res) => {
         });
     }
 
-    const lead = await new Lead(req.body).save();
+    const lead = await new Lead({ ...req.body, adminId }).save();
 
     res.status(200).send({
       field: {
@@ -100,13 +108,13 @@ router.post('/create', async (req, res) => {
   }
 });
 
-router.get('/all', async (req, res) => {
+router.get('/all', auth, hasLeadAccess, async (req, res) => {
   try {
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.find(),
+        data: await Lead.find({ adminId: req.user.adminId }),
       },
     });
   } catch (error) {
@@ -116,14 +124,14 @@ router.get('/all', async (req, res) => {
   }
 });
 
-router.get('/phone', async (req, res) => {
+router.get('/phone', auth, hasInboxAccess, async (req, res) => {
   try {
     const { phone } = req.query;
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.findOne({ phone: phone }),
+        data: await Lead.findOne({ phone: phone, adminId: req.user.adminId }),
       },
     });
   } catch (error) {
@@ -132,7 +140,7 @@ router.get('/phone', async (req, res) => {
     });
   }
 });
-router.get('/', async (req, res) => {
+router.get('/', auth, hasInboxAccess, async (req, res) => {
   try {
     const { _id } = req.query;
     const { error } = validateObjectId(req.query);
@@ -148,7 +156,7 @@ router.get('/', async (req, res) => {
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.findById(_id),
+        data: await Lead.findOne({ _id, adminId: req.user.adminId }),
       },
     });
   } catch (error) {
@@ -158,7 +166,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/filter', async (req, res) => {
+router.get('/filter', auth, hasQuickSendAccess, async (req, res) => {
   try {
     req.query = JSON.stringify(req.query);
     req.query = JSON.parse(req.query);
@@ -206,7 +214,6 @@ router.get('/filter', async (req, res) => {
         }
       }
     }
-
     const query = eval({
       $and: [
         { $or: [...firstNames] },
@@ -220,6 +227,7 @@ router.get('/filter', async (req, res) => {
         { $or: [...states] },
         { $or: [...zip] },
         { $or: [...countries] },
+        { adminId: req.user.adminId },
       ],
     });
 
@@ -239,9 +247,17 @@ router.get('/filter', async (req, res) => {
   }
 });
 
-router.put('/', async (req, res) => {
+router.put('/', auth, hasInboxAccess, async (req, res) => {
   try {
-    const { _id, notes, createdAt, __v, updatedAt, ...data } = req.body;
+    const {
+      _id,
+      notes,
+      createdAt,
+      __v,
+      updatedAt,
+      adminId: aId,
+      ...data
+    } = req.body;
     const { error } = validateLead({ ...data, ...(notes && { notes }) });
     if (error)
       return res.status(400).send({
@@ -261,13 +277,22 @@ router.put('/', async (req, res) => {
       });
     }
 
-    if (!(await Lead.findById(_id))) {
+    const lead = await Lead.findOne({ _id });
+    if (!lead) {
       return res.status(400).send({
         field: { name: 'Lead Id', message: 'No Lead with this Id exist' },
       });
     }
-
+    if (lead.adminId != req.user.adminId) {
+      return res.status(400).send({
+        field: {
+          name: 'Admin Id',
+          message: 'This lead does not belong to this admin Id',
+        },
+      });
+    }
     const { phone: mobileNumber, email, labels, website } = data;
+    const { adminId } = req.user;
 
     if (mobileNumber && phone(mobileNumber).length === 0) {
       return res.status(400).send({
@@ -294,6 +319,7 @@ router.put('/', async (req, res) => {
           phone: mobileNumber,
         },
         { _id: { $ne: _id } },
+        { adminId: adminId },
       ]))
     ) {
       return res.status(400).send({
@@ -303,7 +329,6 @@ router.put('/', async (req, res) => {
         },
       });
     }
-
     if (
       email &&
       (await Lead.findOne().and([
@@ -311,6 +336,7 @@ router.put('/', async (req, res) => {
           email: { $regex: new RegExp('^' + email + '$', 'i') },
         },
         { _id: { $ne: _id } },
+        { adminId: adminId },
       ]))
     ) {
       return res.status(400).send({
@@ -320,20 +346,20 @@ router.put('/', async (req, res) => {
         },
       });
     }
-
-    for (label of labels) {
-      if (!(await Label.findById(label)))
-        return res.status(400).send({
-          field: {
-            name: 'labelId',
-            message: 'One of the Label Id in labels array is not valid',
-          },
-        });
+    if (labels) {
+      for (label of labels) {
+        if (!(await Label.findById(label)))
+          return res.status(400).send({
+            field: {
+              name: 'labelId',
+              message: 'One of the Label Id in labels array is not valid',
+            },
+          });
+      }
     }
-
     await Lead.updateOne(
       { _id: _id },
-      { ...data, ...(notes && { notes }), updatedAt: Date() }
+      { ...data, ...(notes && { notes }), adminId, updatedAt: Date() }
     );
 
     res.status(200).send({
@@ -350,7 +376,7 @@ router.put('/', async (req, res) => {
   }
 });
 
-router.put('/labels', async (req, res) => {
+router.put('/labels', auth, hasLeadAccess, async (req, res) => {
   try {
     const { leads } = req.body;
     for (lead of leads) {
@@ -383,8 +409,17 @@ router.put('/labels', async (req, res) => {
   }
 });
 
-router.delete('/', async (req, res) => {
+router.delete('/', auth, hasLeadAccess, async (req, res) => {
   try {
+    if (!req.query.leads || !Array.isArray(JSON.parse(req.query.leads))) {
+      return res.send({
+        field: {
+          name: 'leads Array',
+          message: 'No leads array is available in query params',
+          data: {},
+        },
+      });
+    }
     const leads = JSON.parse(req.query.leads);
 
     for (lead of leads) {
@@ -400,6 +435,7 @@ router.delete('/', async (req, res) => {
 
     await Lead.deleteMany({
       _id: { $in: leads },
+      adminId: req.user.adminId,
     });
 
     res.send({
@@ -416,7 +452,7 @@ router.delete('/', async (req, res) => {
   }
 });
 
-router.put('/note', async (req, res) => {
+router.put('/note', auth, hasInboxAccess, async (req, res) => {
   try {
     const { _id, noteId, content } = req.body;
     for (id of [_id, noteId]) {
@@ -440,15 +476,14 @@ router.put('/note', async (req, res) => {
       });
     }
 
-    const lead = await Lead.findById(_id);
+    const lead = await Lead.findOne({ _id, adminId: req.user.adminId });
     if (!lead) {
       return res.status(400).send({
         field: { name: 'Lead Id', message: 'No Lead with this Id exist' },
       });
     }
-
-    lead.notes = lead.notes.map((l) =>
-      l._id === noteId ? { ...l, content: content } : l
+    lead.notes = JSON.parse(JSON.stringify(lead.notes)).map((l) =>
+      l._id == noteId ? { ...l, content: content } : l
     );
     await lead.save();
 
@@ -466,7 +501,7 @@ router.put('/note', async (req, res) => {
   }
 });
 
-router.delete('/note', async (req, res) => {
+router.delete('/note', auth, hasInboxAccess, async (req, res) => {
   try {
     const { _id, noteId } = req.body;
     for (id of [_id, noteId]) {
@@ -486,8 +521,17 @@ router.delete('/note', async (req, res) => {
         field: { name: 'Lead Id', message: 'No Lead with this Id exist' },
       });
     }
-
-    lead.notes = lead.notes.filter((l) => l._id != noteId);
+    if (lead.adminId != req.user.adminId) {
+      return res.status(400).send({
+        field: {
+          name: 'Admin Id',
+          message: 'This lead does not belong to this admin Id',
+        },
+      });
+    }
+    lead.notes = JSON.parse(JSON.stringify(lead.notes)).filter(
+      (l) => l._id != noteId
+    );
 
     await lead.save();
 
@@ -505,10 +549,10 @@ router.delete('/note', async (req, res) => {
   }
 });
 
-router.put('/addNote', async (req, res) => {
+router.put('/addNote', auth, hasInboxAccess, async (req, res) => {
   try {
-    const { _id, noteId, content } = req.body;
-    for (id of [_id, noteId]) {
+    const { _id, content } = req.body;
+    for (id of [_id]) {
       const { error } = validateObjectId({ _id: id });
       if (error)
         return res.status(400).send({
@@ -533,6 +577,15 @@ router.put('/addNote', async (req, res) => {
     if (!lead) {
       return res.status(400).send({
         field: { name: 'Lead Id', message: 'No Lead with this Id exist' },
+      });
+    }
+
+    if (lead.adminId != req.user.adminId) {
+      return res.status(400).send({
+        field: {
+          name: 'Admin Id',
+          message: 'This lead does not belong to this admin Id',
+        },
       });
     }
 
@@ -553,7 +606,7 @@ router.put('/addNote', async (req, res) => {
   }
 });
 
-router.post('/csvUpload', async (req, res) => {
+router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
   const csvFolderName = __dirname + '/../public/csv';
 
   !fs.existsSync(csvFolderName) && fs.mkdirSync(csvFolderName);
@@ -709,7 +762,7 @@ router.post('/csvUpload', async (req, res) => {
                 rejectBczOfERepetition++;
                 continue;
               }
-              await new Lead(lead).save();
+              await new Lead({ ...lead, adminId: req.user.adminId }).save();
               saved++;
             } catch (err) {
               continue;
@@ -758,15 +811,19 @@ router.get('/downloadSample', async (req, res) => {
   res.download(file);
 });
 
-router.get('/allCompanies', async (req, res) => {
+router.get('/allCompanies', auth, hasQuickSendAccess, async (req, res) => {
   try {
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.find().distinct('companyName', {
-          companyName: { $nin: ['', null] },
-        }),
+
+        data: await Lead.find({ adminId: req.user.adminId }).distinct(
+          'companyName',
+          {
+            companyName: { $nin: ['', null] },
+          }
+        ),
       },
     });
   } catch (error) {
@@ -776,15 +833,18 @@ router.get('/allCompanies', async (req, res) => {
   }
 });
 
-router.get('/allLeadSources', async (req, res) => {
+router.get('/allLeadSources', auth, hasQuickSendAccess, async (req, res) => {
   try {
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Lead.find().distinct('leadSource', {
-          leadSource: { $nin: ['', null] },
-        }),
+        data: await Lead.find({ adminId: req.user.adminId }).distinct(
+          'leadSource',
+          {
+            leadSource: { $nin: ['', null] },
+          }
+        ),
       },
     });
   } catch (error) {

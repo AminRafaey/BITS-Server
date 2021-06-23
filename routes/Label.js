@@ -24,6 +24,7 @@ router.post('/', auth, hasLabelAccess, async (req, res) => {
     if (
       await Label.findOne({
         title: { $regex: new RegExp('^' + title + '$', 'i') },
+        adminId: req.user.adminId,
       })
     ) {
       return res.status(400).send({
@@ -117,7 +118,7 @@ router.get('/', auth, hasLabelAccess, async (req, res) => {
 
 router.put('/', auth, hasLabelAccess, async (req, res) => {
   try {
-    const { _id, ...data } = req.body;
+    const { _id, adminId, ...data } = req.body;
     const { error } = validateLabel(data);
     if (error)
       return res.status(400).send({

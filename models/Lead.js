@@ -68,6 +68,11 @@ const schema = new mongoose.Schema({
       },
     },
   ],
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date(),

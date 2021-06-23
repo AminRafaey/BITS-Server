@@ -7,6 +7,8 @@ const {
 } = require('./RouteHelpers/Auth.js');
 const bcrypt = require('bcrypt');
 const { Employee } = require('../models/Employee');
+const { Admin } = require('../models/Admin');
+
 const auth = require('../Middlewares/auth');
 const isEmployee = require('../Middlewares/isEmployee');
 
@@ -20,13 +22,11 @@ router.post('/', async (req, res) => {
           name: error.details[0].path[0],
         },
       });
-
     const { email, userName, password } = req.body;
 
     const user = await User.findOne()
       .or([{ email: email }, { userName: userName }])
       .populate('adminId employeeId');
-    console.log(user);
     if (!user || (user && user.verified == null)) {
       if (user && user.verified == null)
         return res.status(400).send({
@@ -35,7 +35,6 @@ router.post('/', async (req, res) => {
             message: 'Account is not verified',
           },
         });
-
       return res.status(400).send({
         field: {
           name: 'email or mobile Number',
@@ -51,7 +50,13 @@ router.post('/', async (req, res) => {
           message: 'Invalid username or password',
         },
       });
-    const token = user.generateAuthToken();
+    let token;
+    if (user.type === 'Employee') {
+      const admin = await Admin.findById(user.employeeId.adminId);
+      token = user.generateAuthToken(admin.mobileNumber);
+    } else {
+      token = user.generateAuthToken(user.adminId.mobileNumber);
+    }
 
     return res
       .header('x-auth-token', token)
@@ -133,6 +138,7 @@ router.post('/employeeAccount', auth, isEmployee, async (req, res) => {
       userName: userName,
       password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
       type: 'Employee',
+      verified: new Date(),
     })
       .save()
       .then((res) => res.populate('employeeId').execPopulate());

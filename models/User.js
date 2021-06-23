@@ -37,16 +37,18 @@ const schema = new mongoose.Schema({
 });
 
 schema.methods.generateAuthToken = function (mobileNumber) {
+  console.log(this);
   return jwt.sign(
     {
       _id: this._id,
       type: this.type,
       ...(this.employeeId && {
-        quickSend: this.quickSend,
-        contactManagement: this.contactManagement,
-        templateManagement: this.templateManagement,
-        labelManagement: this.labelManagement,
-        inbox: this.inbox,
+        quickSend: this.employeeId.quickSend,
+        contactManagement: this.employeeId.contactManagement,
+        templateManagement: this.employeeId.templateManagement,
+        labelManagement: this.employeeId.labelManagement,
+        inbox: this.employeeId.inbox,
+        adminId: this.employeeId.adminId,
       }),
       ...(this.adminId && {
         adminId: this.adminId._id,

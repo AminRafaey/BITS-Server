@@ -3,7 +3,7 @@ module.exports = function (req, res, next) {
     next();
   } else if (
     req.user.type === 'Employee' &&
-    req.user.labelManagement === 'allow'
+    req.user.templateManagement === 'allow'
   ) {
     next();
   } else {

@@ -17,6 +17,11 @@ const schema = new mongoose.Schema({
     type: Date,
     default: Date(),
   },
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
+  },
 });
 
 function validateLabel(label) {

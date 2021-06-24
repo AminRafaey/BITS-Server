@@ -43,7 +43,6 @@ router.post('/', auth, hasTemplateAccess, async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -62,7 +61,7 @@ router.delete('/:_id', auth, hasTemplateAccess, async (req, res) => {
         },
       });
 
-    const templateInDb = await Template.remove({
+    const templateInDb = await Template.deleteOne({
       _id,
       adminId: req.user.adminId,
     });
@@ -102,7 +101,7 @@ router.put('/:_id', auth, hasTemplateAccess, async (req, res) => {
         },
       });
 
-    const templateInDb = await Template.updateOne({ _id: _id }, template);
+    const templateInDb = await Template.updateOne({ _id, adminId }, template);
     res.send({
       field: {
         name: 'successful',

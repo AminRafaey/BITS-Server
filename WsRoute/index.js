@@ -84,10 +84,10 @@ module.exports = function (io) {
 
         conn.on('credentials-updated', async () => {
           console.log('credentials-updated-s');
-          await Customer.updateOne({
-            name: 'Amin',
-            ...conn.base64EncodedAuthInfo(),
-          });
+          // await Customer.updateOne({
+          //   name: 'Amin',
+          //   ...conn.base64EncodedAuthInfo(),
+          // });
           const mobileNumber = '+' + conn.user.jid.split('@')[0];
 
           const index = connectedUsers.findIndex(

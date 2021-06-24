@@ -379,6 +379,7 @@ router.put('/', auth, hasInboxAccess, async (req, res) => {
 router.put('/labels', auth, hasLeadAccess, async (req, res) => {
   try {
     const { leads } = req.body;
+    const { adminId } = req.user;
     for (lead of leads) {
       const { _id, labels } = lead;
 
@@ -393,7 +394,7 @@ router.put('/labels', auth, hasLeadAccess, async (req, res) => {
           throw new Error('Label with id is not exist.');
       }
 
-      await Lead.updateOne({ _id: _id }, { labels: labels });
+      await Lead.updateOne({ _id, adminId }, { labels: labels });
     }
     res.status(200).send({
       field: {

@@ -201,7 +201,7 @@ router.delete('/', auth, hasLabelAccess, async (req, res) => {
 
     const { _id } = req.query;
 
-    const label = await Label.remove({ _id, adminId: req.user.adminId });
+    const label = await Label.deleteOne({ _id, adminId: req.user.adminId });
     res.send({
       field: {
         name: 'successful',

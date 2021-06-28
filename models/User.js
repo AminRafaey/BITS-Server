@@ -37,7 +37,6 @@ const schema = new mongoose.Schema({
 });
 
 schema.methods.generateAuthToken = function (mobileNumber) {
-  console.log(this);
   return jwt.sign(
     {
       _id: this._id,

@@ -54,27 +54,27 @@ const schema = new mongoose.Schema({
   quickSend: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   contactManagement: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   templateManagement: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   labelManagement: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   inbox: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   updatedAt: {
     type: Date,

@@ -131,7 +131,7 @@ async function seed() {
 
   for (let user of users) {
     const { error } = validateUser(user);
-    if (error) { 
+    if (error) {
       console.log(error.details[0].message);
       return;
     }

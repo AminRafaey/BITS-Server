@@ -52,6 +52,14 @@ router.post('/', async (req, res) => {
       });
     let token;
     if (user.type === 'Employee') {
+      if (user.employeeId.status !== 'Active') {
+        return res.status(400).send({
+          field: {
+            name: 'Status',
+            message: 'Your account is blocked, Please contact admin.',
+          },
+        });
+      }
       const admin = await Admin.findById(user.employeeId.adminId);
       token = user.generateAuthToken(admin.mobileNumber);
     } else {

@@ -276,6 +276,7 @@ router.put('/', auth, isAdmin, async (req, res) => {
       __v,
       updatedAt,
       email,
+      adminId: leadAdminId,
       ...data
     } = req.body;
     const { adminId } = req.user;

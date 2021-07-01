@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
 Joi.objectId = require('joi-objectid')(Joi);
+const jwt = require('jsonwebtoken');
+const config = require('config');
 
 const schema = new mongoose.Schema({
   firstName: {
@@ -19,8 +21,8 @@ const schema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: ['Active', 'Blocked'],
-    default: 'Active',
+    enum: ['Active', 'Blocked', 'Not-Verified'],
+    default: 'Not-Verified',
   },
 
   mobileNumber: {
@@ -40,6 +42,11 @@ const schema = new mongoose.Schema({
     required: true,
   },
 
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+  },
+
   createdAt: {
     type: Date,
     default: Date(),
@@ -47,39 +54,50 @@ const schema = new mongoose.Schema({
   quickSend: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   contactManagement: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   templateManagement: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   labelManagement: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   inbox: {
     type: String,
     enum: ['allow', 'not-allow'],
-    default: 'not-allow',
+    default: 'allow',
   },
   updatedAt: {
     type: Date,
   },
 });
 
+schema.methods.generateVerificationToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+      type: 'Employee',
+      createdAt: new Date(),
+    },
+    config.get('jwtPrivateKey')
+  );
+};
+
 function validateEmployee(employee) {
   const schema = Joi.object({
     firstName: Joi.string().required(),
     lastName: Joi.string().allow('').optional(),
     designation: Joi.string().required(),
-    status: Joi.string().valid('Active', 'Blocked').required(),
     mobileNumber: Joi.string().required(),
     joiningDate: Joi.date().required(),
     email: Joi.string()

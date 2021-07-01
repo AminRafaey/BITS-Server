@@ -4,7 +4,10 @@ const { Label, validateLabel } = require('../models/Label');
 const { Lead } = require('../models/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
-router.post('/', async (req, res) => {
+const auth = require('../Middlewares/auth');
+const hasLabelAccess = require('../Middlewares/hasLabelAccess');
+
+router.post('/', auth, hasLabelAccess, async (req, res) => {
   try {
     const { error } = validateLabel(req.body);
     if (error) {
@@ -21,6 +24,7 @@ router.post('/', async (req, res) => {
     if (
       await Label.findOne({
         title: { $regex: new RegExp('^' + title + '$', 'i') },
+        adminId: req.user.adminId,
       })
     ) {
       return res.status(400).send({
@@ -31,7 +35,10 @@ router.post('/', async (req, res) => {
         },
       });
     }
-    const label = await new Label(req.body).save();
+    const label = await new Label({
+      ...req.body,
+      adminId: req.user.adminId,
+    }).save();
 
     res.status(200).send({
       field: {
@@ -47,9 +54,9 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/all', async (req, res) => {
+router.get('/all', auth, hasLabelAccess, async (req, res) => {
   try {
-    let labels = await Label.find();
+    let labels = await Label.find({ adminId: req.user.adminId });
     labels = JSON.stringify(labels);
     labels = JSON.parse(labels);
     const labelCounts = await Lead.aggregate([
@@ -82,9 +89,10 @@ router.get('/all', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', auth, hasLabelAccess, async (req, res) => {
   try {
     const { _id } = req.query;
+    const { adminId } = req.user;
     const { error } = validateObjectId(req.query);
     if (error) {
       return res.status(400).send({
@@ -98,7 +106,7 @@ router.get('/', async (req, res) => {
       field: {
         name: 'successful',
         message: 'Successfully Fetched',
-        data: await Label.findById(_id),
+        data: await Label.find({ _id, adminId }),
       },
     });
   } catch (error) {
@@ -108,9 +116,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.put('/', async (req, res) => {
+router.put('/', auth, hasLabelAccess, async (req, res) => {
   try {
-    const { _id, ...data } = req.body;
+    const { _id, adminId, ...data } = req.body;
     const { error } = validateLabel(data);
     if (error)
       return res.status(400).send({
@@ -130,9 +138,19 @@ router.put('/', async (req, res) => {
       });
     }
 
-    if (!(await Label.findById(_id))) {
+    const label = await Label.findById(_id);
+    if (!label) {
       return res.status(400).send({
         field: { name: 'Label Id', message: 'No Label with this Id exist' },
+      });
+    }
+
+    if (label.adminId != req.user.adminId) {
+      return res.status(400).send({
+        field: {
+          name: 'adminId',
+          message: 'This Label do not belong to this admin Id',
+        },
       });
     }
 
@@ -170,7 +188,7 @@ router.put('/', async (req, res) => {
   }
 });
 
-router.delete('/', async (req, res) => {
+router.delete('/', auth, hasLabelAccess, async (req, res) => {
   try {
     const { error } = validateObjectId(req.query);
     if (error)
@@ -183,7 +201,7 @@ router.delete('/', async (req, res) => {
 
     const { _id } = req.query;
 
-    const label = await Label.findByIdAndDelete(_id);
+    const label = await Label.deleteOne({ _id, adminId: req.user.adminId });
     res.send({
       field: {
         name: 'successful',

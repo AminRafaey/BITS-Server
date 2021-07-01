@@ -5,7 +5,6 @@ const schema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    unique: true,
   },
 
   content: {
@@ -20,6 +19,11 @@ const schema = new mongoose.Schema({
 
   media: {
     type: String,
+  },
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
   },
 
   createdAt: {

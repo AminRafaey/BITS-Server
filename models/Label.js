@@ -4,7 +4,6 @@ const Joi = require('joi');
 const schema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
   },
   color: {
     type: String,
@@ -16,6 +15,11 @@ const schema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date(),
+  },
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Admin',
+    required: true,
   },
 });
 

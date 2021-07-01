@@ -6,6 +6,10 @@ const schema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  fullName: {
+    type: String,
+    required: true,
+  },
 });
 
 function validateAdmin(admin) {
@@ -14,6 +18,7 @@ function validateAdmin(admin) {
       .email({ tlds: { allow: true } })
       .required(),
     userName: Joi.string().required(),
+    fullName: Joi.string().required(),
     password: Joi.string().trim().strict().min(4).max(30).required(),
     type: Joi.string().valid('Admin').optional(),
     mobileNumber: Joi.string().required(),

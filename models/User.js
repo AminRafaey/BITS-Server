@@ -36,15 +36,34 @@ const schema = new mongoose.Schema({
   },
 });
 
-schema.methods.generateAuthToken = function () {
+schema.methods.generateAuthToken = function (mobileNumber) {
   return jwt.sign(
     {
       _id: this._id,
-      email: this.email,
-      userName: this.userName,
       type: this.type,
-      mobileNumber: this.adminId.mobileNumber,
-      ...(this.employeeId && { adminId: this.adminId._id }),
+      ...(this.employeeId && {
+        quickSend: this.employeeId.quickSend,
+        contactManagement: this.employeeId.contactManagement,
+        templateManagement: this.employeeId.templateManagement,
+        labelManagement: this.employeeId.labelManagement,
+        inbox: this.employeeId.inbox,
+        adminId: this.employeeId.adminId,
+      }),
+      ...(this.adminId && {
+        adminId: this.adminId._id,
+      }),
+      mobileNumber: mobileNumber,
+      createdAt: new Date(),
+    },
+    config.get('jwtPrivateKey')
+  );
+};
+
+schema.methods.generateVerificationToken = function () {
+  return jwt.sign(
+    {
+      _id: this._id,
+      type: this.type,
       createdAt: new Date(),
     },
     config.get('jwtPrivateKey')

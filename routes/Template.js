@@ -79,10 +79,10 @@ router.delete('/:_id', auth, hasTemplateAccess, async (req, res) => {
   }
 });
 
-router.put('/:_id', auth, hasTemplateAccess, async (req, res) => {
+router.put('/', auth, hasTemplateAccess, async (req, res) => {
   try {
-    const { adminId, ...template } = req.body;
-    const { _id } = req.params;
+    const { ...template } = req.body;
+    const { _id } = req.query;
 
     const { error } = validateTemplateUpdate(template);
     if (error)
@@ -101,12 +101,28 @@ router.put('/:_id', auth, hasTemplateAccess, async (req, res) => {
         },
       });
 
-    const templateInDb = await Template.updateOne({ _id, adminId }, template);
+    const templateInDb = await Template.findOne().and([
+      {
+        title: { $regex: new RegExp('^' + template.title + '$', 'i') },
+      },
+      { adminId: req.user.adminId },
+      { _id: { $ne: _id } },
+    ]);
+
+    if (templateInDb)
+      return res.status(400).send({
+        field: {
+          name: 'title',
+          message: 'A Template with this name already exist',
+        },
+      });
+
+    await Template.updateOne({ _id, adminId: req.user.adminId }, template);
     res.send({
       field: {
         name: 'successful',
         message: 'Successfully updated',
-        data: templateInDb,
+        data: await Template.findById(_id),
       },
     });
   } catch (error) {

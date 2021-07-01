@@ -82,7 +82,7 @@ module.exports = function (io) {
         //   }
         // });
 
-        conn.on('credentials-updated', async () => {
+        conn.on('open', async () => {
           console.log('credentials-updated-s');
           // await Customer.updateOne({
           //   name: 'Amin',

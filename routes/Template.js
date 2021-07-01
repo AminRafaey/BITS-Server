@@ -49,9 +49,9 @@ router.post('/', auth, hasTemplateAccess, async (req, res) => {
   }
 });
 
-router.delete('/:_id', auth, hasTemplateAccess, async (req, res) => {
+router.delete('/', auth, hasTemplateAccess, async (req, res) => {
   try {
-    const { _id } = req.params;
+    const { _id } = req.query;
     const { error } = validateObjectId({ _id: _id });
     if (error)
       return res.status(400).send({

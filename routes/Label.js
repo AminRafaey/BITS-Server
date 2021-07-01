@@ -118,7 +118,7 @@ router.get('/', auth, hasLabelAccess, async (req, res) => {
 
 router.put('/', auth, hasLabelAccess, async (req, res) => {
   try {
-    const { _id, adminId, ...data } = req.body;
+    const { _id, adminId, createdAt, __v, count, ...data } = req.body;
     const { error } = validateLabel(data);
     if (error)
       return res.status(400).send({
@@ -161,6 +161,9 @@ router.put('/', auth, hasLabelAccess, async (req, res) => {
         {
           title: title,
         },
+        {
+          adminId: req.user.adminId,
+        },
         { _id: { $ne: _id } },
       ])
     ) {
@@ -173,12 +176,12 @@ router.put('/', auth, hasLabelAccess, async (req, res) => {
       });
     }
 
-    const updatedLabel = await Label.updateOne({ _id: _id }, data);
+    await Label.updateOne({ _id: _id }, data);
     res.status(200).send({
       field: {
         name: 'successful',
         message: 'Successfully updated',
-        data: updatedLabel,
+        data: await Label.findById(_id),
       },
     });
   } catch (error) {

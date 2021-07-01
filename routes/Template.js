@@ -49,9 +49,9 @@ router.post('/', auth, hasTemplateAccess, async (req, res) => {
   }
 });
 
-router.delete('/:_id', auth, hasTemplateAccess, async (req, res) => {
+router.delete('/', auth, hasTemplateAccess, async (req, res) => {
   try {
-    const { _id } = req.params;
+    const { _id } = req.query;
     const { error } = validateObjectId({ _id: _id });
     if (error)
       return res.status(400).send({
@@ -79,12 +79,11 @@ router.delete('/:_id', auth, hasTemplateAccess, async (req, res) => {
   }
 });
 
-router.put('/:_id', auth, hasTemplateAccess, async (req, res) => {
+router.put('/', auth, hasTemplateAccess, async (req, res) => {
   try {
-    const { adminId, ...template } = req.body;
-    const { _id } = req.params;
+    const { createdAt, _id, adminId, __v, ...template } = req.body;
 
-    const { error } = validateTemplateUpdate(template);
+    const { error } = validateTemplateUpdate({ ...template, _id });
     if (error)
       return res.status(400).send({
         field: {
@@ -92,21 +91,29 @@ router.put('/:_id', auth, hasTemplateAccess, async (req, res) => {
           name: error.details[0].path[0],
         },
       });
-    const { error: error2 } = validateObjectId({ _id: _id });
-    if (error2)
+
+    const templateInDb = await Template.findOne().and([
+      {
+        title: { $regex: new RegExp('^' + template.title + '$', 'i') },
+      },
+      { adminId: req.user.adminId },
+      { _id: { $ne: _id } },
+    ]);
+
+    if (templateInDb)
       return res.status(400).send({
         field: {
-          message: error2.details[0].message,
-          name: error2.details[0].path[0],
+          name: 'title',
+          message: 'A Template with this name already exist',
         },
       });
 
-    const templateInDb = await Template.updateOne({ _id, adminId }, template);
+    await Template.updateOne({ _id, adminId: req.user.adminId }, template);
     res.send({
       field: {
         name: 'successful',
         message: 'Successfully updated',
-        data: templateInDb,
+        data: await Template.findById(_id),
       },
     });
   } catch (error) {

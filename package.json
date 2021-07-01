@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@adiwajshing/baileys": "^3.4.1",
+    "@adiwajshing/baileys": "^3.5.1",
     "bcrypt": "^5.0.1",
     "config": "^3.3.2",
     "cors": "^2.8.5",

@@ -81,23 +81,14 @@ router.delete('/', auth, hasTemplateAccess, async (req, res) => {
 
 router.put('/', auth, hasTemplateAccess, async (req, res) => {
   try {
-    const { ...template } = req.body;
-    const { _id } = req.query;
+    const { createdAt, _id, adminId, __v, ...template } = req.body;
 
-    const { error } = validateTemplateUpdate(template);
+    const { error } = validateTemplateUpdate({ ...template, _id });
     if (error)
       return res.status(400).send({
         field: {
           message: error.details[0].message,
           name: error.details[0].path[0],
-        },
-      });
-    const { error: error2 } = validateObjectId({ _id: _id });
-    if (error2)
-      return res.status(400).send({
-        field: {
-          message: error2.details[0].message,
-          name: error2.details[0].path[0],
         },
       });
 

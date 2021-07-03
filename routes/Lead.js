@@ -17,7 +17,7 @@ const { validateObjectId } = require('./RouteHelpers/Common');
 const auth = require('../Middlewares/auth');
 const hasLeadAccess = require('../Middlewares/hasLeadAccess');
 const hasInboxAccess = require('../Middlewares/hasInboxAccess');
-const hasQuickSendAccess = require('../Middlewares/hasQuickSendAccess');
+const hasDynamicGetAccess = require('../Middlewares/hasDynamicGetAccess');
 
 router.post('/create', auth, hasInboxAccess, async (req, res) => {
   try {
@@ -108,21 +108,28 @@ router.post('/create', auth, hasInboxAccess, async (req, res) => {
   }
 });
 
-router.get('/all', auth, hasLeadAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: await Lead.find({ adminId: req.user.adminId }),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+router.get(
+  '/all',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: await Lead.find({ adminId: req.user.adminId }),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
 
 router.get('/phone', auth, hasInboxAccess, async (req, res) => {
   try {
@@ -166,86 +173,93 @@ router.get('/', auth, hasInboxAccess, async (req, res) => {
   }
 });
 
-router.get('/filter', auth, hasQuickSendAccess, async (req, res) => {
-  try {
-    req.query = JSON.stringify(req.query);
-    req.query = JSON.parse(req.query);
-    Object.keys(req.query).map(
-      (f) => (req.query[f] = req.query[f].map((obj) => JSON.parse(obj)))
-    );
-    Object.keys(req.query).map((f) => (req.query[f] = eval(req.query[f])));
+router.get(
+  '/filter',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend'], ...args);
+  },
+  async (req, res) => {
+    try {
+      req.query = JSON.stringify(req.query);
+      req.query = JSON.parse(req.query);
+      Object.keys(req.query).map(
+        (f) => (req.query[f] = req.query[f].map((obj) => JSON.parse(obj)))
+      );
+      Object.keys(req.query).map((f) => (req.query[f] = eval(req.query[f])));
 
-    const {
-      firstNames = [{}],
-      lastNames = [{}],
-      leadSources = [{}],
-      companies = [{}],
-      labels = [{}],
-      emails = [{}],
-      phones = [{}],
-      cities = [{}],
-      states = [{}],
-      zip = [{}],
-      countries = [{}],
-    } = req.query;
+      const {
+        firstNames = [{}],
+        lastNames = [{}],
+        leadSources = [{}],
+        companies = [{}],
+        labels = [{}],
+        emails = [{}],
+        phones = [{}],
+        cities = [{}],
+        states = [{}],
+        zip = [{}],
+        countries = [{}],
+      } = req.query;
 
-    const { error } = validateFilter(req.query);
-    if (error) {
-      return res.status(400).send({
-        field: {
-          message: error.details[0].message,
-          name: error.details[0].path[0],
-        },
-      });
-    }
-
-    if (JSON.stringify(labels) !== JSON.stringify([{}])) {
-      for (label of labels) {
-        const { error: error2 } = validateObjectId({
-          _id: label.labels['$ne'] ? label.labels['$ne'] : label.labels,
+      const { error } = validateFilter(req.query);
+      if (error) {
+        return res.status(400).send({
+          field: {
+            message: error.details[0].message,
+            name: error.details[0].path[0],
+          },
         });
-        if (error2) {
-          return res.status(400).send({
-            field: {
-              message: error2.details[0].message,
-              name: error2.details[0].path[0],
-            },
+      }
+
+      if (JSON.stringify(labels) !== JSON.stringify([{}])) {
+        for (label of labels) {
+          const { error: error2 } = validateObjectId({
+            _id: label.labels['$ne'] ? label.labels['$ne'] : label.labels,
           });
+          if (error2) {
+            return res.status(400).send({
+              field: {
+                message: error2.details[0].message,
+                name: error2.details[0].path[0],
+              },
+            });
+          }
         }
       }
+      const query = eval({
+        $and: [
+          { $or: [...firstNames] },
+          { $or: [...lastNames] },
+          { $or: [...leadSources] },
+          { $or: [...companies] },
+          { $or: [...labels] },
+          { $or: [...emails] },
+          { $or: [...phones] },
+          { $or: [...cities] },
+          { $or: [...states] },
+          { $or: [...zip] },
+          { $or: [...countries] },
+          { adminId: req.user.adminId },
+        ],
+      });
+
+      const leads = await Lead.find(query);
+
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: leads,
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
     }
-    const query = eval({
-      $and: [
-        { $or: [...firstNames] },
-        { $or: [...lastNames] },
-        { $or: [...leadSources] },
-        { $or: [...companies] },
-        { $or: [...labels] },
-        { $or: [...emails] },
-        { $or: [...phones] },
-        { $or: [...cities] },
-        { $or: [...states] },
-        { $or: [...zip] },
-        { $or: [...countries] },
-        { adminId: req.user.adminId },
-      ],
-    });
-
-    const leads = await Lead.find(query);
-
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: leads,
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
   }
-});
+);
 
 router.put('/', auth, hasInboxAccess, async (req, res) => {
   try {
@@ -376,7 +390,7 @@ router.put('/', auth, hasInboxAccess, async (req, res) => {
   }
 });
 
-router.put('/labels', auth, hasLeadAccess, async (req, res) => {
+router.put('/labels', auth, hasInboxAccess, async (req, res) => {
   try {
     const { leads } = req.body;
     const { adminId } = req.user;
@@ -812,46 +826,60 @@ router.get('/downloadSample', async (req, res) => {
   res.download(file);
 });
 
-router.get('/allCompanies', auth, hasQuickSendAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
+router.get(
+  '/allCompanies',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
 
-        data: await Lead.find({ adminId: req.user.adminId }).distinct(
-          'companyName',
-          {
-            companyName: { $nin: ['', null] },
-          }
-        ),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+          data: await Lead.find({ adminId: req.user.adminId }).distinct(
+            'companyName',
+            {
+              companyName: { $nin: ['', null] },
+            }
+          ),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
 
-router.get('/allLeadSources', auth, hasQuickSendAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: await Lead.find({ adminId: req.user.adminId }).distinct(
-          'leadSource',
-          {
-            leadSource: { $nin: ['', null] },
-          }
-        ),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+router.get(
+  '/allLeadSources',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: await Lead.find({ adminId: req.user.adminId }).distinct(
+            'leadSource',
+            {
+              leadSource: { $nin: ['', null] },
+            }
+          ),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
 module.exports = router;

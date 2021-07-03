@@ -5,6 +5,7 @@ const { validateTemplateUpdate } = require('./RouteHelpers/Template');
 const { validateObjectId } = require('./RouteHelpers/Common');
 const auth = require('../Middlewares/auth');
 const hasTemplateAccess = require('../Middlewares/hasTemplateAccess');
+const hasDynamicGetAccess = require('../Middlewares/hasDynamicGetAccess');
 
 router.post('/', auth, hasTemplateAccess, async (req, res) => {
   try {
@@ -123,21 +124,28 @@ router.put('/', auth, hasTemplateAccess, async (req, res) => {
   }
 });
 
-router.get('/', auth, hasTemplateAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: await Template.find({ adminId: req.user.adminId }),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+router.get(
+  '/',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['quickSend', 'templateManagement', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: await Template.find({ adminId: req.user.adminId }),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
 
 router.get('/:property/:value', auth, hasTemplateAccess, async (req, res) => {
   try {

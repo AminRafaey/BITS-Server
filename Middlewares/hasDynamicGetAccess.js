@@ -1,9 +1,9 @@
-module.exports = function (req, res, next) {
+module.exports = function (arr, req, res, next) {
   if (req.user.type === 'Admin') {
     next();
   } else if (
     req.user.type === 'Employee' &&
-    (req.user.contactManagement === 'allow' || req.user.quickSend === 'allow')
+    arr.find((a) => req.user[a] === 'allow')
   ) {
     next();
   } else {

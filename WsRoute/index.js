@@ -7,6 +7,8 @@ const {
   sendVideo,
   sendPdf,
 } = require('./Send');
+const { importContactsFromWhatsApp } = require('./Import');
+
 const {
   userJoin,
   getCurrentUser,
@@ -35,7 +37,6 @@ module.exports = function (io) {
         });
 
         conn.on('chats-received', () => {
-          console.log('chats-received-s');
           if (!socket.personal.isChatsSent) {
             io.to(socket.id).emit('chats-received', conn.chats);
             const mobileNumber = '+' + conn.user.jid.split('@')[0];
@@ -44,7 +45,6 @@ module.exports = function (io) {
             );
 
             if (index === -1) {
-              console.log(currentConnRef);
               connectedUsers.push({
                 ...conn.user,
                 mobileNumber: mobileNumber,
@@ -60,30 +60,39 @@ module.exports = function (io) {
                 conn: conn,
               };
             }
-            console.log('chats-received-e');
             socket.personal.isChatsSent = true;
           } else {
             io.to(socket.id).emit('chats-received', []);
           }
         });
 
-        // conn.on('contacts-received', () => {
-        //   if (!socket.personal.isContactsSent) {
-        //     let arr = [];
-        //     Object.keys(conn.contacts).map((jid) =>
-        //       arr.push(conn.contacts[jid])
-        //     );
-        //     io.to(socket.id).emit('contacts-received', arr);
+        conn.on('contacts-received', () => {
+          let arr = [];
+          Object.keys(conn.contacts).map((jid) => arr.push(conn.contacts[jid]));
+          const mobileNumber = '+' + conn.user.jid.split('@')[0];
+          const index = connectedUsers.findIndex(
+            (user) => user.mobileNumber === mobileNumber
+          );
 
-        //     const index = connectedUsers.findIndex(user => user.mobileNumber === "+"+conn.user.jid.split('@')[0]);
-        //     connectedUsers[index] = {...connectedUsers[index], contacts:conn.contacts}
-
-        //     socket.personal.isContactsSent = true;
-        //   }
-        // });
+          if (index === -1) {
+            connectedUsers.push({
+              ...conn.user,
+              mobileNumber: mobileNumber,
+              connectedAt: new Date(),
+              contacts: arr,
+              currentConnRef: currentConnRef,
+              conn: conn,
+            });
+          } else {
+            connectedUsers[index] = {
+              ...connectedUsers[index],
+              contacts: arr,
+              conn: conn,
+            };
+          }
+        });
 
         conn.on('open', async () => {
-          console.log('credentials-updated-s');
           // await Customer.updateOne({
           //   name: 'Amin',
           //   ...conn.base64EncodedAuthInfo(),
@@ -94,7 +103,6 @@ module.exports = function (io) {
             (user) => user.mobileNumber === mobileNumber
           );
           if (index === -1) {
-            console.log('here');
             connectedUsers.push({
               ...conn.user,
               mobileNumber,
@@ -102,9 +110,7 @@ module.exports = function (io) {
               currentConnRef: currentConnRef,
               conn: conn,
             });
-            console.log('there');
           }
-          console.log('credentials-updated-e');
           io.to(socket.id).emit('connection-status', {
             status: 'success',
             currentConnRef: currentConnRef,
@@ -215,7 +221,14 @@ module.exports = function (io) {
       }
     );
 
-    socket.on('join-room', ({ userName, mobileNumber }) => {
+    socket.on(
+      'import-contacts-from-whatsApp',
+      async ({ adminId }, arg2, cb) => {
+        importContactsFromWhatsApp(adminId, socket, connectedUsers, cb);
+      }
+    );
+
+    socket.on('join-room', ({ userName, mobileNumber }, arg2, cb) => {
       const user = userJoin(socket.id, userName, mobileNumber);
 
       socket.join(user.room);
@@ -241,6 +254,7 @@ module.exports = function (io) {
         room: user.room,
         users: getRoomUsers(user.room),
       });
+      cb();
     });
 
     socket.on('disconnect', () => {

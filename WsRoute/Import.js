@@ -4,7 +4,13 @@ const { Lead } = require('../models/Lead');
 
 const { getCurrentUser } = require('./utility');
 
-async function importContactsFromWhatsApp(adminId, socket, connectedUsers, cb) {
+async function importContactsFromWhatsApp(
+  adminId,
+  socket,
+  connectedUsers,
+  cb,
+  tryNo = 0
+) {
   const user =
     connectedUsers[
       connectedUsers.findIndex(
@@ -12,10 +18,22 @@ async function importContactsFromWhatsApp(adminId, socket, connectedUsers, cb) {
       )
     ];
   if (!user) {
-    setTimeout(
-      () => importContactsFromWhatsApp(adminId, socket, connectedUsers, cb),
-      1000
-    );
+    tryNo > 180
+      ? cb({
+          status: 'error',
+          message: `Its taking too much time, please try again later`,
+        })
+      : setTimeout(
+          () =>
+            importContactsFromWhatsApp(
+              adminId,
+              socket,
+              connectedUsers,
+              cb,
+              (tryNo = tryNo + 1)
+            ),
+          1000
+        );
     return;
   }
   let count = 0;

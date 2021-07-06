@@ -130,7 +130,42 @@ function isUrlValid(url) {
   }
 }
 
+function validateCSVLeads(lead) {
+  const schema = Joi.object({
+    firstName: Joi.string().optional(),
+    lastName: Joi.string().allow('').optional(),
+    leadSource: Joi.string().allow('').optional(),
+    companyName: Joi.string().allow('').optional(),
+    label: Joi.string().allow('').optional(),
+    email: Joi.string()
+      .email({ tlds: { allow: true } })
+      .allow('')
+      .optional(),
+    phone: Joi.string().allow('').optional(),
+    website: Joi.string().allow('').optional(),
+    address: Joi.string().allow('').optional(),
+    city: Joi.string().allow('').optional(),
+    state: Joi.string().allow('').optional(),
+    zip: Joi.string().allow('').optional(),
+    country: Joi.string().allow('').optional(),
+    notes: Joi.array()
+      .items(
+        Joi.object()
+          .keys({
+            content: Joi.string().required(),
+            _id: Joi.string().optional(),
+            editedAt: Joi.string().optional(),
+            createdAt: Joi.string().optional(),
+          })
+          .optional()
+      )
+      .optional(),
+  });
+  return schema.validate(lead);
+}
+
 exports.isEmailValid = isEmailValid;
 exports.isUrlValid = isUrlValid;
 exports.validateContent = validateContent;
 exports.validateFilter = validateFilter;
+exports.validateCSVLeads = validateCSVLeads;

@@ -1,7 +1,5 @@
 const phone = require('phone');
-
 const { Lead } = require('../models/Lead');
-
 const { getCurrentUser } = require('./utility');
 
 async function importContactsFromWhatsApp(

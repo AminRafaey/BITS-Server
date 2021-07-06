@@ -6,11 +6,14 @@ const fs = require('fs');
 const router = express.Router();
 const { Lead, validateLead } = require('../models/Lead');
 const { Label } = require('../models/Label');
+const { random_hex_color_code } = require('./Helper/RandomHexColorGenerate');
+
 const {
   isUrlValid,
   validateContent,
   isEmailValid,
   validateFilter,
+  validateCSVLeads,
 } = require('./RouteHelpers/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
@@ -683,15 +686,16 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
             firstName: data[0],
             lastName: data[1],
             leadSource: data[2],
-            companyName: data[3],
-            email: data[4],
-            phone: data[5],
-            website: data[6],
-            address: data[7],
-            city: data[8],
-            state: data[9],
-            zip: data[10],
-            country: data[11],
+            label: data[3],
+            companyName: data[4],
+            email: data[5],
+            phone: data[6],
+            website: data[7],
+            address: data[8],
+            city: data[9],
+            state: data[10],
+            zip: data[11],
+            country: data[12],
           });
         })
         .on('end', async function () {
@@ -699,6 +703,18 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
 
           let responseMsg = '';
           let realNumberOfLeads = csvData.length;
+
+          csvData = csvData.map((l) => {
+            if (!l.phone) {
+              return l;
+            }
+            const removeNonNumericChar = l.phone.replace(/\D/g, '');
+            const mobileNumber =
+              '+92' +
+              removeNonNumericChar.substr(removeNonNumericChar.length - 10);
+            return { ...l, phone: mobileNumber };
+          });
+
           csvData = csvData.filter((l) => l.firstName);
 
           realNumberOfLeads !== csvData.length &&
@@ -748,20 +764,22 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
           let rejectBczOfPNRepetition = 0;
           let rejectBczOfERepetition = 0;
 
+          let savedLabel;
           for (lead of csvData) {
             try {
-              const { error } = validateLead(lead);
+              const { error } = validateCSVLeads(lead);
               if (error) {
                 rejectBczOfValidation++;
                 continue;
               }
 
-              const { phone: mobileNumber, email } = lead;
+              const { phone: mobileNumber, email, label } = lead;
 
               if (
                 mobileNumber &&
                 (await Lead.findOne({
                   phone: mobileNumber,
+                  adminId: req.user.adminId,
                 }))
               ) {
                 rejectBczOfPNRepetition++;
@@ -772,12 +790,38 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
                 email &&
                 (await Lead.findOne({
                   email: { $regex: new RegExp('^' + email + '$', 'i') },
+                  adminId: req.user.adminId,
                 }))
               ) {
                 rejectBczOfERepetition++;
                 continue;
               }
-              await new Lead({ ...lead, adminId: req.user.adminId }).save();
+
+              if (label) {
+                if (
+                  !(
+                    savedLabel &&
+                    savedLabel.title.toLowerCase() === label.toLowerCase()
+                  )
+                ) {
+                  const labelFound = await Label.findOne({ title: label });
+                  if (!labelFound) {
+                    savedLabel = await new Label({
+                      title: label,
+                      color: random_hex_color_code(),
+                      adminId: req.user.adminId,
+                    }).save();
+                  } else {
+                    savedLabel = labelFound;
+                  }
+                }
+              }
+
+              await new Lead({
+                ...lead,
+                adminId: req.user.adminId,
+                ...(label && { labels: [savedLabel._id] }),
+              }).save();
               saved++;
             } catch (err) {
               continue;
@@ -804,7 +848,7 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
             field: {
               name: 'successful',
               message: responseMsg,
-              data: {},
+              data: await Lead.find({ adminId: req.user.adminId }),
             },
           });
         })

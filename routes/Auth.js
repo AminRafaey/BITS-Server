@@ -77,6 +77,7 @@ router.post('/', async (req, res) => {
         },
       });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -164,6 +165,7 @@ router.post('/employeeAccount', auth, isEmployee, async (req, res) => {
         },
       });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });

@@ -106,6 +106,7 @@ router.post('/create', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Server Error!', name: 'unexpected' },
     });
@@ -128,6 +129,7 @@ router.get(
         },
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });
@@ -146,6 +148,7 @@ router.get('/phone', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -171,6 +174,7 @@ router.get('/', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -258,6 +262,7 @@ router.get(
         },
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });
@@ -388,6 +393,7 @@ router.put('/', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -422,6 +428,7 @@ router.put('/labels', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -465,6 +472,7 @@ router.delete('/', auth, hasLeadAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -514,6 +522,7 @@ router.put('/note', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -562,6 +571,7 @@ router.delete('/note', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -619,6 +629,7 @@ router.put('/addNote', auth, hasInboxAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -859,6 +870,7 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
           });
         });
     } catch (err) {
+      console.log(err);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });
@@ -1134,6 +1146,7 @@ router.get(
         },
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });
@@ -1162,6 +1175,7 @@ router.get(
         },
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });

@@ -44,6 +44,7 @@ router.post('/', auth, hasTemplateAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -74,6 +75,7 @@ router.delete('/', auth, hasTemplateAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -118,6 +120,7 @@ router.put('/', auth, hasTemplateAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -140,6 +143,7 @@ router.get(
         },
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });
@@ -162,6 +166,7 @@ router.get('/:property/:value', auth, hasTemplateAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });

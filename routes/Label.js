@@ -49,6 +49,7 @@ router.post('/', auth, hasLabelAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Server Error!', name: 'unexpected' },
     });
@@ -93,6 +94,7 @@ router.get(
         },
       });
     } catch (error) {
+      console.log(error);
       res.status(500).send({
         field: { message: 'Unexpected error occured', name: 'unexpected' },
       });
@@ -121,6 +123,7 @@ router.get('/', auth, hasLabelAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -196,6 +199,7 @@ router.put('/', auth, hasLabelAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -228,6 +232,7 @@ router.delete('/', auth, hasLabelAccess, async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });

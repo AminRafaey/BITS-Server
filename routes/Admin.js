@@ -89,6 +89,7 @@ router.post('/', async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -128,6 +129,7 @@ router.post('/resendVerificationEmail', async (req, res) => {
       },
     });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });
@@ -177,6 +179,7 @@ router.put('/accountVerification', auth, isAdmin, async (req, res) => {
         },
       });
   } catch (error) {
+    console.log(error);
     res.status(500).send({
       field: { message: 'Unexpected error occured', name: 'unexpected' },
     });

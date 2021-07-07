@@ -6,6 +6,7 @@ const { validateObjectId } = require('./RouteHelpers/Common');
 
 const auth = require('../Middlewares/auth');
 const hasLabelAccess = require('../Middlewares/hasLabelAccess');
+const hasDynamicGetAccess = require('../Middlewares/hasDynamicGetAccess');
 
 router.post('/', auth, hasLabelAccess, async (req, res) => {
   try {
@@ -54,40 +55,50 @@ router.post('/', auth, hasLabelAccess, async (req, res) => {
   }
 });
 
-router.get('/all', auth, hasLabelAccess, async (req, res) => {
-  try {
-    let labels = await Label.find({ adminId: req.user.adminId });
-    labels = JSON.stringify(labels);
-    labels = JSON.parse(labels);
-    const labelCounts = await Lead.aggregate([
-      { $unwind: '$labels' },
-      { $group: { _id: '$labels', labelCount: { $sum: 1 } } },
-    ]);
-    labels = labels.map((l) => {
-      const label = labelCounts.find((c) => c._id == l._id);
-      if (label) {
-        return { ...l, count: label.labelCount };
-      } else {
-        return { ...l, count: 0 };
-      }
-    });
-    const labelsHash = {};
-    labels.map((l) => {
-      labelsHash[l._id] = l;
-    });
-    return res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: labelsHash,
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+router.get(
+  '/all',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(
+      ['labelManagement', 'quickSend', 'contactManagement', 'inbox'],
+      ...args
+    );
+  },
+  async (req, res) => {
+    try {
+      let labels = await Label.find({ adminId: req.user.adminId });
+      labels = JSON.stringify(labels);
+      labels = JSON.parse(labels);
+      const labelCounts = await Lead.aggregate([
+        { $unwind: '$labels' },
+        { $group: { _id: '$labels', labelCount: { $sum: 1 } } },
+      ]);
+      labels = labels.map((l) => {
+        const label = labelCounts.find((c) => c._id == l._id);
+        if (label) {
+          return { ...l, count: label.labelCount };
+        } else {
+          return { ...l, count: 0 };
+        }
+      });
+      const labelsHash = {};
+      labels.map((l) => {
+        labelsHash[l._id] = l;
+      });
+      return res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: labelsHash,
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
 
 router.get('/', auth, hasLabelAccess, async (req, res) => {
   try {
@@ -205,6 +216,10 @@ router.delete('/', auth, hasLabelAccess, async (req, res) => {
     const { _id } = req.query;
 
     const label = await Label.deleteOne({ _id, adminId: req.user.adminId });
+    await Lead.updateMany(
+      { adminId: req.user.adminId },
+      { $pull: { labels: _id } }
+    );
     res.send({
       field: {
         name: 'successful',

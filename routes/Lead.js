@@ -1,23 +1,27 @@
 const express = require('express');
 const multer = require('multer');
 const parse = require('csv-parse');
+const xlsx = require('node-xlsx');
 const phone = require('phone');
 const fs = require('fs');
 const router = express.Router();
 const { Lead, validateLead } = require('../models/Lead');
 const { Label } = require('../models/Label');
+const { random_hex_color_code } = require('./Helper/RandomHexColorGenerate');
+
 const {
   isUrlValid,
   validateContent,
   isEmailValid,
   validateFilter,
+  validateCSVLeads,
 } = require('./RouteHelpers/Lead');
 const { validateObjectId } = require('./RouteHelpers/Common');
 
 const auth = require('../Middlewares/auth');
 const hasLeadAccess = require('../Middlewares/hasLeadAccess');
 const hasInboxAccess = require('../Middlewares/hasInboxAccess');
-const hasQuickSendAccess = require('../Middlewares/hasQuickSendAccess');
+const hasDynamicGetAccess = require('../Middlewares/hasDynamicGetAccess');
 
 router.post('/create', auth, hasInboxAccess, async (req, res) => {
   try {
@@ -108,21 +112,28 @@ router.post('/create', auth, hasInboxAccess, async (req, res) => {
   }
 });
 
-router.get('/all', auth, hasLeadAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: await Lead.find({ adminId: req.user.adminId }),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+router.get(
+  '/all',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: await Lead.find({ adminId: req.user.adminId }),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
 
 router.get('/phone', auth, hasInboxAccess, async (req, res) => {
   try {
@@ -166,86 +177,93 @@ router.get('/', auth, hasInboxAccess, async (req, res) => {
   }
 });
 
-router.get('/filter', auth, hasQuickSendAccess, async (req, res) => {
-  try {
-    req.query = JSON.stringify(req.query);
-    req.query = JSON.parse(req.query);
-    Object.keys(req.query).map(
-      (f) => (req.query[f] = req.query[f].map((obj) => JSON.parse(obj)))
-    );
-    Object.keys(req.query).map((f) => (req.query[f] = eval(req.query[f])));
+router.get(
+  '/filter',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend'], ...args);
+  },
+  async (req, res) => {
+    try {
+      req.query = JSON.stringify(req.query);
+      req.query = JSON.parse(req.query);
+      Object.keys(req.query).map(
+        (f) => (req.query[f] = req.query[f].map((obj) => JSON.parse(obj)))
+      );
+      Object.keys(req.query).map((f) => (req.query[f] = eval(req.query[f])));
 
-    const {
-      firstNames = [{}],
-      lastNames = [{}],
-      leadSources = [{}],
-      companies = [{}],
-      labels = [{}],
-      emails = [{}],
-      phones = [{}],
-      cities = [{}],
-      states = [{}],
-      zip = [{}],
-      countries = [{}],
-    } = req.query;
+      const {
+        firstNames = [{}],
+        lastNames = [{}],
+        leadSources = [{}],
+        companies = [{}],
+        labels = [{}],
+        emails = [{}],
+        phones = [{}],
+        cities = [{}],
+        states = [{}],
+        zip = [{}],
+        countries = [{}],
+      } = req.query;
 
-    const { error } = validateFilter(req.query);
-    if (error) {
-      return res.status(400).send({
-        field: {
-          message: error.details[0].message,
-          name: error.details[0].path[0],
-        },
-      });
-    }
-
-    if (JSON.stringify(labels) !== JSON.stringify([{}])) {
-      for (label of labels) {
-        const { error: error2 } = validateObjectId({
-          _id: label.labels['$ne'] ? label.labels['$ne'] : label.labels,
+      const { error } = validateFilter(req.query);
+      if (error) {
+        return res.status(400).send({
+          field: {
+            message: error.details[0].message,
+            name: error.details[0].path[0],
+          },
         });
-        if (error2) {
-          return res.status(400).send({
-            field: {
-              message: error2.details[0].message,
-              name: error2.details[0].path[0],
-            },
+      }
+
+      if (JSON.stringify(labels) !== JSON.stringify([{}])) {
+        for (label of labels) {
+          const { error: error2 } = validateObjectId({
+            _id: label.labels['$ne'] ? label.labels['$ne'] : label.labels,
           });
+          if (error2) {
+            return res.status(400).send({
+              field: {
+                message: error2.details[0].message,
+                name: error2.details[0].path[0],
+              },
+            });
+          }
         }
       }
+      const query = eval({
+        $and: [
+          { $or: [...firstNames] },
+          { $or: [...lastNames] },
+          { $or: [...leadSources] },
+          { $or: [...companies] },
+          { $or: [...labels] },
+          { $or: [...emails] },
+          { $or: [...phones] },
+          { $or: [...cities] },
+          { $or: [...states] },
+          { $or: [...zip] },
+          { $or: [...countries] },
+          { adminId: req.user.adminId },
+        ],
+      });
+
+      const leads = await Lead.find(query);
+
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: leads,
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
     }
-    const query = eval({
-      $and: [
-        { $or: [...firstNames] },
-        { $or: [...lastNames] },
-        { $or: [...leadSources] },
-        { $or: [...companies] },
-        { $or: [...labels] },
-        { $or: [...emails] },
-        { $or: [...phones] },
-        { $or: [...cities] },
-        { $or: [...states] },
-        { $or: [...zip] },
-        { $or: [...countries] },
-        { adminId: req.user.adminId },
-      ],
-    });
-
-    const leads = await Lead.find(query);
-
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: leads,
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
   }
-});
+);
 
 router.put('/', auth, hasInboxAccess, async (req, res) => {
   try {
@@ -376,7 +394,7 @@ router.put('/', auth, hasInboxAccess, async (req, res) => {
   }
 });
 
-router.put('/labels', auth, hasLeadAccess, async (req, res) => {
+router.put('/labels', auth, hasInboxAccess, async (req, res) => {
   try {
     const { leads } = req.body;
     const { adminId } = req.user;
@@ -669,15 +687,16 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
             firstName: data[0],
             lastName: data[1],
             leadSource: data[2],
-            companyName: data[3],
-            email: data[4],
-            phone: data[5],
-            website: data[6],
-            address: data[7],
-            city: data[8],
-            state: data[9],
-            zip: data[10],
-            country: data[11],
+            label: data[3],
+            companyName: data[4],
+            email: data[5],
+            phone: data[6],
+            website: data[7],
+            address: data[8],
+            city: data[9],
+            state: data[10],
+            zip: data[11],
+            country: data[12],
           });
         })
         .on('end', async function () {
@@ -685,6 +704,18 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
 
           let responseMsg = '';
           let realNumberOfLeads = csvData.length;
+
+          csvData = csvData.map((l) => {
+            if (!l.phone) {
+              return l;
+            }
+            const removeNonNumericChar = l.phone.replace(/\D/g, '');
+            const mobileNumber =
+              '+92' +
+              removeNonNumericChar.substr(removeNonNumericChar.length - 10);
+            return { ...l, phone: mobileNumber };
+          });
+
           csvData = csvData.filter((l) => l.firstName);
 
           realNumberOfLeads !== csvData.length &&
@@ -734,20 +765,22 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
           let rejectBczOfPNRepetition = 0;
           let rejectBczOfERepetition = 0;
 
+          let savedLabel;
           for (lead of csvData) {
             try {
-              const { error } = validateLead(lead);
+              const { error } = validateCSVLeads(lead);
               if (error) {
                 rejectBczOfValidation++;
                 continue;
               }
 
-              const { phone: mobileNumber, email } = lead;
+              const { phone: mobileNumber, email, label } = lead;
 
               if (
                 mobileNumber &&
                 (await Lead.findOne({
                   phone: mobileNumber,
+                  adminId: req.user.adminId,
                 }))
               ) {
                 rejectBczOfPNRepetition++;
@@ -758,12 +791,38 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
                 email &&
                 (await Lead.findOne({
                   email: { $regex: new RegExp('^' + email + '$', 'i') },
+                  adminId: req.user.adminId,
                 }))
               ) {
                 rejectBczOfERepetition++;
                 continue;
               }
-              await new Lead({ ...lead, adminId: req.user.adminId }).save();
+
+              if (label) {
+                if (
+                  !(
+                    savedLabel &&
+                    savedLabel.title.toLowerCase() === label.toLowerCase()
+                  )
+                ) {
+                  const labelFound = await Label.findOne({ title: label });
+                  if (!labelFound) {
+                    savedLabel = await new Label({
+                      title: label,
+                      color: random_hex_color_code(),
+                      adminId: req.user.adminId,
+                    }).save();
+                  } else {
+                    savedLabel = labelFound;
+                  }
+                }
+              }
+
+              await new Lead({
+                ...lead,
+                adminId: req.user.adminId,
+                ...(label && { labels: [savedLabel._id] }),
+              }).save();
               saved++;
             } catch (err) {
               continue;
@@ -790,7 +849,7 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
             field: {
               name: 'successful',
               message: responseMsg,
-              data: {},
+              data: await Lead.find({ adminId: req.user.adminId }),
             },
           });
         })
@@ -807,51 +866,306 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
   });
 });
 
-router.get('/downloadSample', async (req, res) => {
+router.post('/xlsxUpload', auth, hasLeadAccess, async (req, res) => {
+  const csvFolderName = __dirname + '/../public/csv';
+
+  !fs.existsSync(csvFolderName) && fs.mkdirSync(csvFolderName);
+
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, csvFolderName);
+    },
+    filename: function (req, file, cb) {
+      cb(null, 'excelFile.xlsx');
+    },
+  });
+
+  const fileFilter = (req, file, cb) => {
+    if (
+      file.mimetype ===
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ) {
+      cb(null, true);
+    } else {
+      req.inValidFileFormat = true;
+      cb('invalid format', false);
+    }
+  };
+
+  const upload = multer({
+    storage: storage,
+    limits: {
+      fileSize: 1024 * 1024 * 1,
+    },
+    fileFilter: fileFilter,
+  });
+
+  upload.single('excelFile')(req, res, async function (err) {
+    if (req.inValidFileFormat) {
+      res.status(400).send({
+        field: {
+          name: 'File',
+          message: 'File format is not valid',
+        },
+      });
+      return;
+    } else if (err) {
+      res.status(400).send({
+        field: {
+          name: 'File',
+          message: 'Error occured during file save',
+        },
+      });
+      return;
+    }
+    try {
+      const data = xlsx.parse(`${__dirname}/../public/csv/excelFile.xlsx`);
+
+      let csvData = data[0].data;
+
+      csvData.shift();
+      csvData = csvData.map((c) => ({
+        firstName: c[0],
+        lastName: c[1],
+        leadSource: c[2],
+        label: c[3],
+        companyName: c[4],
+        email: c[5],
+        phone: c[6] ? String(c[6]) : undefined,
+        website: c[7],
+        address: c[8],
+        city: c[9],
+        state: c[10],
+        zip: c[11],
+        country: c[12],
+      }));
+      csvData = csvData.filter(
+        (c) =>
+          !Object.values(c).every(
+            (x) => x === null || x === '' || x === undefined
+          )
+      );
+      console.log(csvData);
+      let responseMsg = '';
+      let realNumberOfLeads = csvData.length;
+
+      csvData = csvData.map((l) => {
+        if (!l.phone) {
+          return l;
+        }
+        const removeNonNumericChar = l.phone.replace(/\D/g, '');
+        const mobileNumber =
+          '+92' + removeNonNumericChar.substr(removeNonNumericChar.length - 10);
+        return { ...l, phone: mobileNumber };
+      });
+
+      csvData = csvData.filter((l) => l.firstName);
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg = `${
+          realNumberOfLeads === csvData.length
+            ? 0
+            : realNumberOfLeads - csvData.length
+        } Leads are filtered out because their first name was empty and it can't be empty\n`);
+      realNumberOfLeads = csvData.length;
+
+      csvData = csvData.filter((l) =>
+        l.phone ? phone(l.phone).length !== 0 : true
+      );
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg =
+          responseMsg +
+          `${
+            realNumberOfLeads - csvData.length
+          } Leads are filtered out because their phone number is not valid\n`);
+
+      realNumberOfLeads = csvData.length;
+      csvData = csvData.filter((l) => (l.email ? isEmailValid(l.email) : true));
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg =
+          responseMsg +
+          `${
+            realNumberOfLeads - csvData.length
+          } Leads are filtered out because their email is not valid\n`);
+      realNumberOfLeads = csvData.length;
+      csvData = csvData.filter((l) =>
+        l.website ? isUrlValid(l.website) : true
+      );
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg =
+          responseMsg +
+          `${
+            realNumberOfLeads - csvData.length
+          } Leads are filtered out because their website url is not valid\n`);
+
+      let saved = 0;
+      let rejectBczOfValidation = 0;
+      let rejectBczOfPNRepetition = 0;
+      let rejectBczOfERepetition = 0;
+
+      let savedLabel;
+      for (lead of csvData) {
+        try {
+          const { error } = validateCSVLeads(lead);
+          if (error) {
+            rejectBczOfValidation++;
+            continue;
+          }
+
+          const { phone: mobileNumber, email, label } = lead;
+
+          if (
+            mobileNumber &&
+            (await Lead.findOne({
+              phone: mobileNumber,
+              adminId: req.user.adminId,
+            }))
+          ) {
+            rejectBczOfPNRepetition++;
+            continue;
+          }
+
+          if (
+            email &&
+            (await Lead.findOne({
+              email: { $regex: new RegExp('^' + email + '$', 'i') },
+              adminId: req.user.adminId,
+            }))
+          ) {
+            rejectBczOfERepetition++;
+            continue;
+          }
+
+          if (label) {
+            if (
+              !(
+                savedLabel &&
+                savedLabel.title.toLowerCase() === label.toLowerCase()
+              )
+            ) {
+              const labelFound = await Label.findOne({ title: label });
+              if (!labelFound) {
+                savedLabel = await new Label({
+                  title: label,
+                  color: random_hex_color_code(),
+                  adminId: req.user.adminId,
+                }).save();
+              } else {
+                savedLabel = labelFound;
+              }
+            }
+          }
+
+          await new Lead({
+            ...lead,
+            adminId: req.user.adminId,
+            ...(label && { labels: [savedLabel._id] }),
+          }).save();
+          saved++;
+        } catch (err) {
+          continue;
+        }
+      }
+      rejectBczOfValidation > 0 &&
+        (responseMsg =
+          responseMsg +
+          `${rejectBczOfValidation} Leads are filtered out because they are not validated\n`);
+
+      rejectBczOfPNRepetition > 0 &&
+        (responseMsg =
+          responseMsg +
+          `${rejectBczOfPNRepetition} Leads are filtered out because duplicate lead found with the same phone number\n`);
+
+      rejectBczOfERepetition > 0 &&
+        (responseMsg =
+          responseMsg +
+          `${rejectBczOfERepetition} Leads are filtered out because duplicate lead found with the same email\n`);
+
+      responseMsg =
+        responseMsg + `Total ${saved} Leads are successfully saved\n`;
+      return res.status(200).send({
+        field: {
+          name: 'successful',
+          message: responseMsg,
+          data: await Lead.find({ adminId: req.user.adminId }),
+        },
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
+  });
+});
+
+router.get('/downloadCSVSample', async (req, res) => {
   const file = __dirname + '/../public/download/SampleLeads.csv';
   res.download(file);
 });
 
-router.get('/allCompanies', auth, hasQuickSendAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-
-        data: await Lead.find({ adminId: req.user.adminId }).distinct(
-          'companyName',
-          {
-            companyName: { $nin: ['', null] },
-          }
-        ),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
-  }
+router.get('/downloadXLSXSample', async (req, res) => {
+  const file = __dirname + '/../public/download/SampleLeads.xlsx';
+  res.download(file);
 });
 
-router.get('/allLeadSources', auth, hasQuickSendAccess, async (req, res) => {
-  try {
-    res.status(200).send({
-      field: {
-        name: 'successful',
-        message: 'Successfully Fetched',
-        data: await Lead.find({ adminId: req.user.adminId }).distinct(
-          'leadSource',
-          {
-            leadSource: { $nin: ['', null] },
-          }
-        ),
-      },
-    });
-  } catch (error) {
-    res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
-    });
+router.get(
+  '/allCompanies',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+
+          data: await Lead.find({ adminId: req.user.adminId }).distinct(
+            'companyName',
+            {
+              companyName: { $nin: ['', null] },
+            }
+          ),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
   }
-});
+);
+
+router.get(
+  '/allLeadSources',
+  auth,
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
+  },
+  async (req, res) => {
+    try {
+      res.status(200).send({
+        field: {
+          name: 'successful',
+          message: 'Successfully Fetched',
+          data: await Lead.find({ adminId: req.user.adminId }).distinct(
+            'leadSource',
+            {
+              leadSource: { $nin: ['', null] },
+            }
+          ),
+        },
+      });
+    } catch (error) {
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
+  }
+);
 module.exports = router;

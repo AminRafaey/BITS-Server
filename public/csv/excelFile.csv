@@ -1,3 +1,5 @@
-First Name,Last Name,Lead Source,Company Name,Email,Phone,Website,Address,City,State,Zip,Country
-Sheldon,Cooper,Ads,Nexus berry,sheldon@gmail.com,+923348035644,http://the-big-bang-theory.com/characters.Sheldon/,,,,,Pakistan
-Homer,Simpson,Campaign id: 1212,Nexus berry,homer.simpson@yahoo.com,+923174343123,http://the-big-bang-theory.com/characters.Sheldon/,,,,,Pakistan
+First Name,Last Name,Lead Source,Label,Company Name,Email,Phone,Website,Address,City,State,Zip,Country
+Sheldon,Cooper,Ads,Important,Nexus berry,sheldon@gmail.com,3348035644,http://the-big-bang-theory.com/characters.Sheldon/,,,,,Pakistan
+Homer,Simpson,Campaign id: 1212,Warm,Nexus berry,homer.simpson@yahoo.com,92-3364773099,http://the-big-bang-theory.com/characters.Sheldon/,,,,,Pakistan
+Homer,Simpson,Campaign id: 1212,Important,Nexus berry,homer.simpson@yahoo.com,0317-4343123,http://the-big-bang-theory.com/characters.Sheldon/,,,,,Pakistan
+Sheldon,Cooper,Ads,Important,Nexus berry,sheldon@gmail.com,9.23E+11,http://the-big-bang-theory.com/characters.Sheldon/,,,,,Pakistan

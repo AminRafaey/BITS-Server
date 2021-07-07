@@ -76,6 +76,7 @@ const validateEmployeeUpdate = (data) => {
 const validateEmployeeAccessUpdate = (data) => {
   const schema = Joi.object({
     _id: Joi.objectId().required(),
+    adminId: Joi.objectId().required(),
     firstName: Joi.string().required(),
     lastName: Joi.string().allow('').optional(),
     designation: Joi.string().required(),

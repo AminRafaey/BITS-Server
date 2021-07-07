@@ -3,6 +3,7 @@ const http = require('http');
 const socketio = require('socket.io');
 const config = require('config');
 const app = express();
+const path = require('path');
 
 const server = http.createServer(app);
 const io = socketio(server, {
@@ -16,11 +17,21 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.static(path.join(__dirname, 'client/build')));
+
 require('./startup/morgan')(app);
 require('./startup/cors')(app);
 require('./startup/db')(app);
 require('./startup/routes')(app);
 require('./WsRoute/index')(io);
+
+app.get('/*', function(req, res) {
+  res.sendFile(path.join(__dirname, 'client/build/index.html'), function(err) {
+    if (err) {
+      res.status(500).send(err)
+    }
+  })
+})
 
 // Run when client connects
 

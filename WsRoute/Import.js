@@ -15,7 +15,7 @@ async function importContactsFromWhatsApp(
         (user) => user.mobileNumber === getCurrentUser(socket.id).room
       )
     ];
-  if (!user) {
+  if (!user || !user.contacts) {
     tryNo > 180
       ? cb({
           status: 'error',
@@ -39,11 +39,10 @@ async function importContactsFromWhatsApp(
     const mobileNumber = '+' + contact.jid.split('@')[0];
     if (phone(mobileNumber).length !== 0) {
       if (
-        (await Lead.findOne({
+        await Lead.findOne({
           phone: mobileNumber,
           adminId: adminId,
-        })) ||
-        !contact.name
+        })
       ) {
         continue;
       }
@@ -60,7 +59,9 @@ async function importContactsFromWhatsApp(
       }
       count++;
       await new Lead({
-        firstName: contact.name,
+        ...(contact.name
+          ? { firstName: contact.name }
+          : { firstName: 'Anonymous' }),
         adminId,
         phone: mobileNumber,
       }).save();

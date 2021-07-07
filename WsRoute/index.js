@@ -241,6 +241,7 @@ module.exports = function (io) {
           status: 'success',
           currentConnRef: connectedUsers[index]['currentConnRef'],
         });
+        console.log(connectedUsers[index].chats.length);
         io.to(socket.id).emit('chats-received', connectedUsers[index].chats);
       }
 

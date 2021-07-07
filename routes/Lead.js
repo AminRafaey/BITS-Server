@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const parse = require('csv-parse');
+const xlsx = require('node-xlsx');
 const phone = require('phone');
 const fs = require('fs');
 const router = express.Router();
@@ -865,8 +866,249 @@ router.post('/csvUpload', auth, hasLeadAccess, async (req, res) => {
   });
 });
 
-router.get('/downloadSample', async (req, res) => {
+router.post('/xlsxUpload', auth, hasLeadAccess, async (req, res) => {
+  const csvFolderName = __dirname + '/../public/csv';
+
+  !fs.existsSync(csvFolderName) && fs.mkdirSync(csvFolderName);
+
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, csvFolderName);
+    },
+    filename: function (req, file, cb) {
+      cb(null, 'excelFile.xlsx');
+    },
+  });
+
+  const fileFilter = (req, file, cb) => {
+    if (
+      file.mimetype ===
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ) {
+      cb(null, true);
+    } else {
+      req.inValidFileFormat = true;
+      cb('invalid format', false);
+    }
+  };
+
+  const upload = multer({
+    storage: storage,
+    limits: {
+      fileSize: 1024 * 1024 * 1,
+    },
+    fileFilter: fileFilter,
+  });
+
+  upload.single('excelFile')(req, res, async function (err) {
+    if (req.inValidFileFormat) {
+      res.status(400).send({
+        field: {
+          name: 'File',
+          message: 'File format is not valid',
+        },
+      });
+      return;
+    } else if (err) {
+      res.status(400).send({
+        field: {
+          name: 'File',
+          message: 'Error occured during file save',
+        },
+      });
+      return;
+    }
+    try {
+      const data = xlsx.parse(`${__dirname}/../public/csv/excelFile.xlsx`);
+
+      let csvData = data[0].data;
+
+      csvData.shift();
+      csvData = csvData.map((c) => ({
+        firstName: c[0],
+        lastName: c[1],
+        leadSource: c[2],
+        label: c[3],
+        companyName: c[4],
+        email: c[5],
+        phone: c[6] ? String(c[6]) : undefined,
+        website: c[7],
+        address: c[8],
+        city: c[9],
+        state: c[10],
+        zip: c[11],
+        country: c[12],
+      }));
+      csvData = csvData.filter(
+        (c) =>
+          !Object.values(c).every(
+            (x) => x === null || x === '' || x === undefined
+          )
+      );
+      console.log(csvData);
+      let responseMsg = '';
+      let realNumberOfLeads = csvData.length;
+
+      csvData = csvData.map((l) => {
+        if (!l.phone) {
+          return l;
+        }
+        const removeNonNumericChar = l.phone.replace(/\D/g, '');
+        const mobileNumber =
+          '+92' + removeNonNumericChar.substr(removeNonNumericChar.length - 10);
+        return { ...l, phone: mobileNumber };
+      });
+
+      csvData = csvData.filter((l) => l.firstName);
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg = `${
+          realNumberOfLeads === csvData.length
+            ? 0
+            : realNumberOfLeads - csvData.length
+        } Leads are filtered out because their first name was empty and it can't be empty\n`);
+      realNumberOfLeads = csvData.length;
+
+      csvData = csvData.filter((l) =>
+        l.phone ? phone(l.phone).length !== 0 : true
+      );
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg =
+          responseMsg +
+          `${
+            realNumberOfLeads - csvData.length
+          } Leads are filtered out because their phone number is not valid\n`);
+
+      realNumberOfLeads = csvData.length;
+      csvData = csvData.filter((l) => (l.email ? isEmailValid(l.email) : true));
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg =
+          responseMsg +
+          `${
+            realNumberOfLeads - csvData.length
+          } Leads are filtered out because their email is not valid\n`);
+      realNumberOfLeads = csvData.length;
+      csvData = csvData.filter((l) =>
+        l.website ? isUrlValid(l.website) : true
+      );
+
+      realNumberOfLeads !== csvData.length &&
+        (responseMsg =
+          responseMsg +
+          `${
+            realNumberOfLeads - csvData.length
+          } Leads are filtered out because their website url is not valid\n`);
+
+      let saved = 0;
+      let rejectBczOfValidation = 0;
+      let rejectBczOfPNRepetition = 0;
+      let rejectBczOfERepetition = 0;
+
+      let savedLabel;
+      for (lead of csvData) {
+        try {
+          const { error } = validateCSVLeads(lead);
+          if (error) {
+            rejectBczOfValidation++;
+            continue;
+          }
+
+          const { phone: mobileNumber, email, label } = lead;
+
+          if (
+            mobileNumber &&
+            (await Lead.findOne({
+              phone: mobileNumber,
+              adminId: req.user.adminId,
+            }))
+          ) {
+            rejectBczOfPNRepetition++;
+            continue;
+          }
+
+          if (
+            email &&
+            (await Lead.findOne({
+              email: { $regex: new RegExp('^' + email + '$', 'i') },
+              adminId: req.user.adminId,
+            }))
+          ) {
+            rejectBczOfERepetition++;
+            continue;
+          }
+
+          if (label) {
+            if (
+              !(
+                savedLabel &&
+                savedLabel.title.toLowerCase() === label.toLowerCase()
+              )
+            ) {
+              const labelFound = await Label.findOne({ title: label });
+              if (!labelFound) {
+                savedLabel = await new Label({
+                  title: label,
+                  color: random_hex_color_code(),
+                  adminId: req.user.adminId,
+                }).save();
+              } else {
+                savedLabel = labelFound;
+              }
+            }
+          }
+
+          await new Lead({
+            ...lead,
+            adminId: req.user.adminId,
+            ...(label && { labels: [savedLabel._id] }),
+          }).save();
+          saved++;
+        } catch (err) {
+          continue;
+        }
+      }
+      rejectBczOfValidation > 0 &&
+        (responseMsg =
+          responseMsg +
+          `${rejectBczOfValidation} Leads are filtered out because they are not validated\n`);
+
+      rejectBczOfPNRepetition > 0 &&
+        (responseMsg =
+          responseMsg +
+          `${rejectBczOfPNRepetition} Leads are filtered out because duplicate lead found with the same phone number\n`);
+
+      rejectBczOfERepetition > 0 &&
+        (responseMsg =
+          responseMsg +
+          `${rejectBczOfERepetition} Leads are filtered out because duplicate lead found with the same email\n`);
+
+      responseMsg =
+        responseMsg + `Total ${saved} Leads are successfully saved\n`;
+      return res.status(200).send({
+        field: {
+          name: 'successful',
+          message: responseMsg,
+          data: await Lead.find({ adminId: req.user.adminId }),
+        },
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
+  });
+});
+
+router.get('/downloadCSVSample', async (req, res) => {
   const file = __dirname + '/../public/download/SampleLeads.csv';
+  res.download(file);
+});
+
+router.get('/downloadXLSXSample', async (req, res) => {
+  const file = __dirname + '/../public/download/SampleLeads.xlsx';
   res.download(file);
 });
 

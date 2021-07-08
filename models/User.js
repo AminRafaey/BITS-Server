@@ -36,10 +36,11 @@ const schema = new mongoose.Schema({
   },
 });
 
-schema.methods.generateAuthToken = function (mobileNumber) {
+schema.methods.generateAuthToken = function (mobileNumber, name) {
   return jwt.sign(
     {
       _id: this._id,
+      name: name,
       type: this.type,
       ...(this.employeeId && {
         quickSend: this.employeeId.quickSend,

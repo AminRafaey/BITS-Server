@@ -61,9 +61,15 @@ router.post('/', async (req, res) => {
         });
       }
       const admin = await Admin.findById(user.employeeId.adminId);
-      token = user.generateAuthToken(admin.mobileNumber);
+      token = user.generateAuthToken(
+        admin.mobileNumber,
+        user.employeeId.firstName + (user.employeeId.lastName || '')
+      );
     } else {
-      token = user.generateAuthToken(user.adminId.mobileNumber);
+      token = user.generateAuthToken(
+        user.adminId.mobileNumber,
+        user.adminId.fullName
+      );
     }
 
     return res

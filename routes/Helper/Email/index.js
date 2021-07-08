@@ -1,5 +1,43 @@
+require('dotenv').config();
+const { google } = require('googleapis');
+const OAuth2 = google.auth.OAuth2;
 const nodemailer = require('nodemailer');
 const config = require('config');
+
+const createTransporter = async () => {
+  const oauth2Client = new OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    'https://developers.google.com/oauthplayground'
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: process.env.REFRESH_TOKEN,
+  });
+
+  const accessToken = await new Promise((resolve, reject) => {
+    oauth2Client.getAccessToken((err, token) => {
+      if (err) {
+        reject('Failed to create access token :(');
+      }
+      resolve(token);
+    });
+  });
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: process.env.EMAIL,
+      accessToken,
+      clientId: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      refreshToken: process.env.REFRESH_TOKEN,
+    },
+  });
+
+  return transporter;
+};
 
 async function sendVerificationEmail(email, token, origin) {
   let message;
@@ -42,15 +80,8 @@ async function sendEmployeeVerificationEmail(email, token, origin) {
 }
 
 async function sendEmail({ to, subject, html }) {
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    auth: {
-      user: config.get('USER'),
-      pass: config.get('PASS'),
-    },
-  });
-  await transporter.sendMail({ to, subject, html });
+  const transporter = await createTransporter();
+  await transporter.sendMail({ to, subject, html, from: process.env.EMAIL });
 }
 
 exports.sendEmail = sendEmail;

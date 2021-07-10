@@ -3,7 +3,7 @@ const config = require('config');
 
 module.exports = function (req, res, next) {
   const { token } = req.query;
-
+  console.log('here');
   if (!token)
     return res.status(401).send({
       field: { message: 'Access denied. No token provided', name: 'No token' },

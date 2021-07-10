@@ -29,5 +29,25 @@ function validateEmployeeAccount(user) {
   });
   return schema.validate(user);
 }
+
+function validateEmail(user) {
+  const schema = Joi.object({
+    email: Joi.string()
+      .email({ tlds: { allow: true } })
+      .required(),
+  });
+  return schema.validate(user);
+}
+
+function validatePasswordConfirmation(user) {
+  const schema = Joi.object({
+    password: Joi.string().trim().strict().min(4).max(30).required(),
+    confirmPassword: Joi.string().required(),
+  });
+  return schema.validate(user);
+}
+
 exports.validateUserForLogin = validateUserForLogin;
 exports.validateEmployeeAccount = validateEmployeeAccount;
+exports.validateEmail = validateEmail;
+exports.validatePasswordConfirmation = validatePasswordConfirmation;

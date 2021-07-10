@@ -3,6 +3,7 @@ const multer = require('multer');
 const parse = require('csv-parse');
 const xlsx = require('node-xlsx');
 const phone = require('phone');
+const stream = require('stream');
 const fs = require('fs');
 const router = express.Router();
 const { Lead, validateLead } = require('../models/Lead');
@@ -19,6 +20,7 @@ const {
 const { validateObjectId } = require('./RouteHelpers/Common');
 
 const auth = require('../Middlewares/auth');
+const authUrl = require('../Middlewares/authUrl');
 const hasLeadAccess = require('../Middlewares/hasLeadAccess');
 const hasInboxAccess = require('../Middlewares/hasInboxAccess');
 const hasDynamicGetAccess = require('../Middlewares/hasDynamicGetAccess');
@@ -1182,4 +1184,73 @@ router.get(
     }
   }
 );
+
+router.get(
+  '/exportLeads',
+  (...args) => {
+    authUrl(...args);
+  },
+  (...args) => {
+    hasDynamicGetAccess(['contactManagement'], ...args);
+  },
+  async (req, res) => {
+    try {
+      let data = await Lead.find({ adminId: req.user.adminId });
+      data = data.map((d) => [
+        d.firstName || null,
+        d.lastName || null,
+        d.leadSource || null,
+        d.companyName || null,
+        d.email || null,
+        d.phone || null,
+        d.website || null,
+        d.address || null,
+        d.city || null,
+        d.state || null,
+        d.zip || null,
+        d.country || null,
+      ]);
+
+      data.unshift([
+        'First Name',
+        'Last Name',
+        'Lead Source',
+        'Company',
+        'Email',
+        'Phone',
+        'Website',
+        'Address',
+        'City',
+        'State',
+        'Zip',
+        'Country',
+      ]);
+
+      const options = {
+        '!cols': [{ wch: 6 }, { wch: 7 }, { wch: 10 }, { wch: 20 }],
+      };
+
+      const buffer = xlsx.build([{ name: 'myContacts', data: data }], options);
+
+      const fileContents = Buffer.from(buffer, 'base64');
+
+      const readStream = new stream.PassThrough();
+      readStream.end(fileContents);
+
+      res.set(
+        'Content-disposition',
+        'attachment; filename=' + 'myContacts.xlsx'
+      );
+      res.set('Content-Type', 'text/plain');
+
+      readStream.pipe(res);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
+  }
+);
+
 module.exports = router;

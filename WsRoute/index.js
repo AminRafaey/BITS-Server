@@ -23,7 +23,7 @@ module.exports = function (io) {
     socket.personal = {};
     socket.personal.isChatsSent = false;
     socket.personal.isContactsSent = false;
-    socket.on('get-qr', (currentConnRef) => {
+    socket.on('get-qr', ({currentConnRef, adminMobileNumber}) => {
       async function connectToWhatsApp() {
         const conn = new WAConnection();
 
@@ -37,7 +37,7 @@ module.exports = function (io) {
         });
 
         conn.on('chats-received', () => {
-          if (!socket.personal.isChatsSent) {
+          if('+' + conn.user.jid.split('@')[0] === adminMobileNumber){if (!socket.personal.isChatsSent) {
             io.to(socket.id).emit('chats-received', conn.chats);
             const mobileNumber = '+' + conn.user.jid.split('@')[0];
             const index = connectedUsers.findIndex(
@@ -63,7 +63,7 @@ module.exports = function (io) {
             socket.personal.isChatsSent = true;
           } else {
             io.to(socket.id).emit('chats-received', []);
-          }
+          }}
         });
 
         conn.on('contacts-received', () => {
@@ -93,6 +93,12 @@ module.exports = function (io) {
         });
 
         conn.on('open', async () => {
+          if('+' + conn.user.jid.split('@')[0] !== adminMobileNumber){
+            io.to(socket.id).emit('wrong-mobile-number', {
+              currentConnRef: currentConnRef,
+            });
+            return;
+          }
           // await Customer.updateOne({
           //   name: 'Amin',
           //   ...conn.base64EncodedAuthInfo(),
@@ -118,6 +124,9 @@ module.exports = function (io) {
         });
 
         await conn.connect();
+
+        console.log('+' + conn.user.jid.split('@')[0], adminMobileNumber);
+        
 
         conn.on('chat-new', (chat) => {
           io.to(socket.id).emit('chat-new', chat);

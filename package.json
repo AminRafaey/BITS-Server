@@ -30,7 +30,8 @@
     "nodemon": "^2.0.6",
     "phone": "^2.4.21",
     "prettier": "^2.2.1",
-    "socket.io": "^3.1.2"
+    "socket.io": "^3.1.2",
+    "stream": "0.0.2"
   },
   "devDependencies": {
     "dotenv": "^10.0.0"

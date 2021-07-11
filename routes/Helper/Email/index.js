@@ -79,6 +79,26 @@ async function sendEmployeeVerificationEmail(email, token, origin) {
   });
 }
 
+async function sendPasswordVerificationEmail(email, token, origin) {
+  let message;
+  if (origin) {
+    const verifyUrl = `${origin}/forgotPassword/passwordConfirmation?token=${token}`;
+    message = `<p>Please click the below link to verify your email address:</p>
+                   <p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
+  } else {
+    message = `<p>Please use the below token to verify your email address with the <code>/forgotPassword/passwordConfirmation</code> api route:</p>
+                   <p><code>${token}</code></p>`;
+  }
+
+  await sendEmail({
+    to: email,
+    subject: `BITS - Verify Email`,
+    html: `<h4>Verify Email</h4>
+               <p>Recover your password!</p>
+               ${message}`,
+  });
+}
+
 async function sendEmail({ to, subject, html }) {
   const transporter = await createTransporter();
   await transporter.sendMail({ to, subject, html, from: process.env.EMAIL });
@@ -87,3 +107,4 @@ async function sendEmail({ to, subject, html }) {
 exports.sendEmail = sendEmail;
 exports.sendEmployeeVerificationEmail = sendEmployeeVerificationEmail;
 exports.sendVerificationEmail = sendVerificationEmail;
+exports.sendPasswordVerificationEmail = sendPasswordVerificationEmail;

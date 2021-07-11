@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const stream = require('stream');
+const xlsx = require('node-xlsx');
 const { Template, validateTemplate } = require('../models/Template');
 const { validateTemplateUpdate } = require('./RouteHelpers/Template');
 const { validateObjectId } = require('./RouteHelpers/Common');
+
 const auth = require('../Middlewares/auth');
+const authUrl = require('../Middlewares/authUrl');
 const hasTemplateAccess = require('../Middlewares/hasTemplateAccess');
 const hasDynamicGetAccess = require('../Middlewares/hasDynamicGetAccess');
 
@@ -172,5 +176,49 @@ router.get('/:property/:value', auth, hasTemplateAccess, async (req, res) => {
     });
   }
 });
+
+router.get(
+  '/exportTemplates',
+  (...args) => {
+    authUrl(...args);
+  },
+  hasTemplateAccess,
+  async (req, res) => {
+    try {
+      let data = await Template.find({ adminId: req.user.adminId });
+      data = data.map((d) => [
+        d.title || null,
+        d.content || null,
+        d.createdAt || null,
+      ]);
+
+      data.unshift(['Title', 'Content', 'Created At']);
+
+      const options = {
+        '!cols': [{ wch: 6 }, { wch: 7 }, { wch: 10 }, { wch: 20 }],
+      };
+
+      const buffer = xlsx.build([{ name: 'myTemplates', data: data }], options);
+
+      const fileContents = Buffer.from(buffer, 'base64');
+
+      const readStream = new stream.PassThrough();
+      readStream.end(fileContents);
+
+      res.set(
+        'Content-disposition',
+        'attachment; filename=' + 'myTemplates.xlsx'
+      );
+      res.set('Content-Type', 'text/plain');
+
+      readStream.pipe(res);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({
+        field: { message: 'Unexpected error occured', name: 'unexpected' },
+      });
+    }
+  }
+);
 
 module.exports = router;

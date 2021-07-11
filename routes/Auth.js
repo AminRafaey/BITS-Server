@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
+
 const { User } = require('../models/User');
 const {
   validateUserForLogin,
   validateEmployeeAccount,
+  validateEmail,
+  validatePasswordConfirmation,
 } = require('./RouteHelpers/Auth.js');
 const bcrypt = require('bcrypt');
 const { Employee } = require('../models/Employee');
 const { Admin } = require('../models/Admin');
+const { sendPasswordVerificationEmail } = require('./Helper/Email');
 
 const auth = require('../Middlewares/auth');
 const isEmployee = require('../Middlewares/isEmployee');
@@ -61,9 +65,15 @@ router.post('/', async (req, res) => {
         });
       }
       const admin = await Admin.findById(user.employeeId.adminId);
-      token = user.generateAuthToken(admin.mobileNumber);
+      token = user.generateAuthToken(
+        admin.mobileNumber,
+        user.employeeId.firstName + (user.employeeId.lastName || '')
+      );
     } else {
-      token = user.generateAuthToken(user.adminId.mobileNumber);
+      token = user.generateAuthToken(
+        user.adminId.mobileNumber,
+        user.adminId.fullName
+      );
     }
 
     return res
@@ -172,4 +182,90 @@ router.post('/employeeAccount', auth, isEmployee, async (req, res) => {
   }
 });
 
+router.post('/forgotPassword', async (req, res) => {
+  try {
+    const { error } = validateEmail(req.body);
+    if (error) {
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: 'error',
+        },
+      });
+    }
+
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).send({
+        field: {
+          message: 'We are not able to find any user',
+          name: 'error',
+        },
+      });
+    }
+
+    const token = user.generateEmailVerificationToken();
+    await sendPasswordVerificationEmail(user.email, token, req.get('origin'));
+
+    return res.status(200).send({
+      field: {
+        message: 'We have sent a password recover instruction to your email',
+        name: 'success',
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'error' },
+    });
+  }
+});
+
+router.post('/resetPassword', auth, async (req, res) => {
+  try {
+    const { error } = validatePasswordConfirmation(req.body);
+    if (error) {
+      return res.status(400).send({
+        field: {
+          message: error.details[0].message,
+          name: error.details[0].path[0],
+        },
+      });
+    }
+
+    const { password, confirmPassword } = req.body;
+    const { _id } = req.query;
+
+    if (password !== confirmPassword) {
+      return res.status(400).send({
+        field: {
+          message: 'Password and confirm password field do not match',
+          name: 'Password',
+        },
+      });
+    }
+
+    await User.updateOne(
+      { _id },
+      {
+        password: await bcrypt.hash(password, await bcrypt.genSalt(10)),
+        verified: new Date(),
+      }
+    );
+
+    return res.status(200).send({
+      field: {
+        message: 'Password has been updated successfully',
+        name: 'successful',
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      field: { message: 'Unexpected error occured', name: 'unexpected' },
+    });
+  }
+});
 module.exports = router;

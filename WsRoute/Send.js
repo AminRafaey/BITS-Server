@@ -1,4 +1,4 @@
-const { MessageType, Mimetype } = require('@adiwajshing/baileys');
+const { MessageType, Mimetype, Presence } = require('@adiwajshing/baileys');
 const { keywords } = require('../Static/Keyword');
 const fs = require('fs');
 const path = require('path');
@@ -35,12 +35,15 @@ async function sendTextMessage(
         );
       });
     const exists = await user.conn.isOnWhatsApp(number);
-    exists &&
-      user.conn.sendMessage(
+
+    if (exists) {
+      await user.conn.chatRead(`${number}@s.whatsapp.net`);
+      await user.conn.sendMessage(
         `${number}@s.whatsapp.net`,
         convertedMsg,
         MessageType.text
       );
+    }
   }
   cb();
 }
@@ -92,8 +95,10 @@ async function sendImage(
           );
         });
       const exists = await user.conn.isOnWhatsApp(number);
-      exists &&
-        user.conn.sendMessage(
+
+      if (exists) {
+        await user.conn.chatRead(`${number}@s.whatsapp.net`);
+        await user.conn.sendMessage(
           `${number}@s.whatsapp.net`,
           buffer,
           MessageType.image,
@@ -101,6 +106,7 @@ async function sendImage(
             caption: convertedMsg,
           }
         );
+      }
     }
     cb();
     deleteFile(path.join(__dirname, '../public/media', mediaPath));
@@ -139,8 +145,9 @@ async function sendVideo(
           );
         });
       const exists = await user.conn.isOnWhatsApp(number);
-      exists &&
-        user.conn.sendMessage(
+      if (exists) {
+        await user.conn.chatRead(`${number}@s.whatsapp.net`);
+        await user.conn.sendMessage(
           `${number}@s.whatsapp.net`,
           buffer,
           MessageType.video,
@@ -148,6 +155,7 @@ async function sendVideo(
             caption: convertedMsg,
           }
         );
+      }
     }
     cb();
     deleteFile(path.join(__dirname, '../public/media', mediaPath));
@@ -186,20 +194,21 @@ async function sendPdf(
           );
         });
       const exists = await user.conn.isOnWhatsApp(number);
-      exists &&
-        user.conn.sendMessage(
+      if (exists) {
+        await user.conn.chatRead(`${number}@s.whatsapp.net`);
+        await user.conn.sendMessage(
           `${number}@s.whatsapp.net`,
           buffer,
           MessageType.document,
           { mimetype: Mimetype.pdf }
         );
-      exists &&
         message &&
-        user.conn.sendMessage(
-          `${number}@s.whatsapp.net`,
-          convertedMsg,
-          MessageType.text
-        );
+          user.conn.sendMessage(
+            `${number}@s.whatsapp.net`,
+            convertedMsg,
+            MessageType.text
+          );
+      }
     }
     cb();
     deleteFile(path.join(__dirname, '../public/media', mediaPath));

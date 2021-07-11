@@ -155,7 +155,6 @@ module.exports = function (io) {
       }
       connectToWhatsApp().catch((err) => {
         io.to(socket.id).emit('no-qr', null);
-        console.log('unexpected error: ' + err);
 
         const index = connectedUsers.findIndex(
           (user) => user.mobileNumber === getCurrentUser(socket.id).room
@@ -163,7 +162,7 @@ module.exports = function (io) {
 
         io.to(socket.id).emit('disconnected', {
           message: 'Disconnected from WhatsApp: ' + err,
-          currentConnRef: connectedUsers[index].currentConnRef,
+          currentConnRef: currentConnRef,
         });
 
         if (index !== -1) {

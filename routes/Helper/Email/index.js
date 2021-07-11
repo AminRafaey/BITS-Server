@@ -82,7 +82,7 @@ async function sendEmployeeVerificationEmail(email, token, origin) {
 async function sendPasswordVerificationEmail(email, token, origin) {
   let message;
   if (origin) {
-    const verifyUrl = `${origin}/employeeAccount/verifyEmail?token=${token}`;
+    const verifyUrl = `${origin}/forgotPassword/passwordConfirmation?token=${token}`;
     message = `<p>Please click the below link to verify your email address:</p>
                    <p><a href="${verifyUrl}">${verifyUrl}</a></p>`;
   } else {

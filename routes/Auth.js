@@ -189,7 +189,7 @@ router.post('/forgotPassword', async (req, res) => {
       return res.status(400).send({
         field: {
           message: error.details[0].message,
-          name: error.details[0].path[0],
+          name: 'error',
         },
       });
     }
@@ -201,7 +201,7 @@ router.post('/forgotPassword', async (req, res) => {
       return res.status(400).send({
         field: {
           message: 'We are not able to find any user',
-          name: 'email',
+          name: 'error',
         },
       });
     }
@@ -212,13 +212,13 @@ router.post('/forgotPassword', async (req, res) => {
     return res.status(200).send({
       field: {
         message: 'We have sent a password recover instruction to your email',
-        name: 'successful',
+        name: 'success',
       },
     });
   } catch (error) {
     console.log(error);
     res.status(500).send({
-      field: { message: 'Unexpected error occured', name: 'unexpected' },
+      field: { message: 'Unexpected error occured', name: 'error' },
     });
   }
 });

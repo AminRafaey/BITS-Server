@@ -1,5 +1,4 @@
 const { WAConnection } = require('@adiwajshing/baileys');
-const { Customer } = require('../models/Customer');
 const {
   sendTextMessage,
   sendTextMessageOnGroup,

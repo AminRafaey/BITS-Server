@@ -34,7 +34,5 @@
     "stream": "0.0.2",
     "dotenv": "^10.0.0"
   },
-  "devDependencies": {
-    
-  }
+  "devDependencies": {}
 }

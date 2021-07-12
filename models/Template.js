@@ -12,14 +12,6 @@ const schema = new mongoose.Schema({
     required: true,
   },
 
-  mediaType: {
-    type: String,
-    enum: ['image', 'video', 'pdf'],
-  },
-
-  media: {
-    type: String,
-  },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin',
@@ -36,8 +28,6 @@ function validateTemplate(template) {
   const schema = Joi.object({
     title: Joi.string().required(),
     content: Joi.string().required(),
-    mediaType: Joi.string().valid('image', 'video', 'pdf').optional(),
-    media: Joi.string().allow('').optional(),
   });
   return schema.validate(template);
 }

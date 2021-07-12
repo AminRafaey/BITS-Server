@@ -4,6 +4,7 @@ const Joi = require('joi');
 const schema = new mongoose.Schema({
   title: {
     type: String,
+    required: true,
   },
   color: {
     type: String,

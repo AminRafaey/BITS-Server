@@ -1,8 +1,8 @@
 {
-  "db": "mongodb://localhost/BITS",
+  "db": "mongodb+srv://amin:Kuku10uku@cluster0.ce9zm.mongodb.net/myFirstDatabase?retryWrites=true&w=majority",
   "port": "4000",
   "jwtPrivateKey": "jwtPrivateKey",
   "USER": "businessdotitsolutions@gmail.com",
   "PASS": "Kuku10uku",
-  "productionDb": "mongodb+srv://amin:Kuku10uku@cluster0.ce9zm.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+  "productionDb": "mongodb://localhost/BITS"
 }

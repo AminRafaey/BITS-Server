@@ -5,6 +5,7 @@ const schema = new mongoose.Schema({
   mobileNumber: {
     type: String,
     required: true,
+    unique: true,
   },
   fullName: {
     type: String,

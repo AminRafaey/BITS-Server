@@ -6,7 +6,10 @@ const {
   sendVideo,
   sendPdf,
 } = require('./Send');
-const { importContactsFromWhatsApp } = require('./Import');
+const {
+  importContactsFromWhatsApp,
+  getImportContactStatus,
+} = require('./Import');
 
 const {
   userJoin,
@@ -222,9 +225,13 @@ module.exports = function (io) {
     socket.on(
       'import-contacts-from-whatsApp',
       async ({ adminId }, arg2, cb) => {
-        importContactsFromWhatsApp(adminId, socket, connectedUsers, cb);
+        importContactsFromWhatsApp(adminId, socket, connectedUsers, cb, io);
       }
     );
+
+    socket.on('get-Import-Contacts-Status', async ({}, arg2, cb) => {
+      getImportContactStatus(socket, connectedUsers, cb);
+    });
 
     socket.on('join-room', ({ userName, mobileNumber }, arg2, cb) => {
       const user = userJoin(socket.id, userName, mobileNumber);

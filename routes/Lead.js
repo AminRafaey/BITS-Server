@@ -959,7 +959,6 @@ router.post('/xlsxUpload', auth, hasLeadAccess, async (req, res) => {
             (x) => x === null || x === '' || x === undefined
           )
       );
-      console.log(csvData);
       let responseMsg = '';
       let realNumberOfLeads = csvData.length;
 

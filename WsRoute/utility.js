@@ -11,7 +11,6 @@ function userJoin(id, userName, room) {
 
 // Get current user
 function getCurrentUser(id) {
-  console.log(users.find((user) => user.id === id));
   return users.find((user) => user.id === id);
 }
 
@@ -26,7 +25,6 @@ function userLeave(id) {
 
 // Get room users
 function getRoomUsers(room) {
-  console.log(users, room);
   return users.filter((user) => user.room === room);
 }
 

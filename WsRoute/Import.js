@@ -7,6 +7,7 @@ async function importContactsFromWhatsApp(
   socket,
   connectedUsers,
   cb,
+  io,
   tryNo = 0
 ) {
   const user =
@@ -15,6 +16,7 @@ async function importContactsFromWhatsApp(
         (user) => user.mobileNumber === getCurrentUser(socket.id).room
       )
     ];
+
   if (!user || !user.contacts) {
     tryNo > 180
       ? cb({
@@ -28,12 +30,24 @@ async function importContactsFromWhatsApp(
               socket,
               connectedUsers,
               cb,
+              io,
               (tryNo = tryNo + 1)
             ),
           1000
         );
     return;
   }
+  io.to(socket.id).emit('import-start', {
+    message:
+      'Import start successfully, total contacts are ' + user.contacts.length,
+  });
+  user.import = {};
+  user.import = {
+    ...user.import,
+    latestImportTime: new Date(),
+    status: 'In Progress',
+  };
+  user.import = { ...user.import, totalContacts: user.contacts.length };
   let count = 0;
   for (contact of user.contacts) {
     const mobileNumber = '+' + contact.jid.split('@')[0];
@@ -66,6 +80,7 @@ async function importContactsFromWhatsApp(
         phone: mobileNumber,
       }).save();
     }
+    user.import = { ...user.import, savedContacts: count, status: 'complete' };
   }
   cb({
     status: 'success',
@@ -74,6 +89,24 @@ async function importContactsFromWhatsApp(
   });
 }
 
+async function getImportContactStatus(socket, connectedUsers, cb, tryNo = 0) {
+  const user =
+    connectedUsers[
+      connectedUsers.findIndex(
+        (user) => user.mobileNumber === getCurrentUser(socket.id).room
+      )
+    ];
+
+  if (user) {
+    cb({
+      status: 'success',
+      message: ``,
+      data: user.import,
+    });
+  }
+}
+
 module.exports = {
   importContactsFromWhatsApp,
+  getImportContactStatus,
 };

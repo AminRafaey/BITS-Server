@@ -85,7 +85,7 @@ async function importContactsFromWhatsApp(
   cb({
     status: 'success',
     message: `Total ${count} new contact imported successfully`,
-    data: await Lead.find({ adminId: adminId }),
+    data: await Lead.find({ adminId: adminId }).skip(0).limit(150),
   });
 }
 

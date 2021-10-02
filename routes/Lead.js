@@ -116,18 +116,26 @@ router.post('/create', auth, hasInboxAccess, async (req, res) => {
 });
 
 router.get(
-  '/all',
+  '/all/:page/:rowsPerPage',
   auth,
   (...args) => {
     hasDynamicGetAccess(['contactManagement', 'quickSend', 'inbox'], ...args);
   },
   async (req, res) => {
+    const { page, rowsPerPage } = req.params;
     try {
       res.status(200).send({
         field: {
           name: 'successful',
           message: 'Successfully Fetched',
-          data: await Lead.find({ adminId: req.user.adminId }),
+          data: await Lead.find({ adminId: req.user.adminId })
+            .skip(parseInt(page * rowsPerPage))
+            .limit(parseInt(rowsPerPage)),
+          ...(page == 0 && {
+            totalLeads: await Lead.find({
+              adminId: req.user.adminId,
+            }).countDocuments(),
+          }),
         },
       });
     } catch (error) {
@@ -184,13 +192,14 @@ router.get('/', auth, hasInboxAccess, async (req, res) => {
 });
 
 router.get(
-  '/filter',
+  '/filter/:page/:rowsPerPage',
   auth,
   (...args) => {
     hasDynamicGetAccess(['contactManagement', 'quickSend'], ...args);
   },
   async (req, res) => {
     try {
+      const { page, rowsPerPage } = req.params;
       req.query = JSON.stringify(req.query);
       req.query = JSON.parse(req.query);
       Object.keys(req.query).map(
@@ -254,13 +263,17 @@ router.get(
         ],
       });
 
-      const leads = await Lead.find(query);
-
+      const leads = await Lead.find(query)
+        .skip(parseInt(page * rowsPerPage))
+        .limit(parseInt(rowsPerPage));
       res.status(200).send({
         field: {
           name: 'successful',
           message: 'Successfully Fetched',
           data: leads,
+          ...(page == 0 && {
+            totalLeads: await Lead.find(query).countDocuments(),
+          }),
         },
       });
     } catch (error) {
@@ -959,7 +972,6 @@ router.post('/xlsxUpload', auth, hasLeadAccess, async (req, res) => {
             (x) => x === null || x === '' || x === undefined
           )
       );
-      console.log(csvData);
       let responseMsg = '';
       let realNumberOfLeads = csvData.length;
 

@@ -77360,7 +77360,7 @@
                           Gx + '/resendVerificationEmail',
                           'post',
                           void 0,
-                          t,
+                          { userId: t },
                           !1
                         )
                       );

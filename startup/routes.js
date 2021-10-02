@@ -12,11 +12,11 @@ module.exports = function (app) {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.static(path.join(__dirname, '../public')));
 
-  app.use('/send', Send);
-  app.use('/lead', Lead);
-  app.use('/template', Template);
-  app.use('/label', Label);
-  app.use('/auth', Auth);
-  app.use('/admin', Admin);
-  app.use('/employee', Employee);
+  app.use('/api/send', Send);
+  app.use('/api/lead', Lead);
+  app.use('/api/template', Template);
+  app.use('/api/label', Label);
+  app.use('/api/auth', Auth);
+  app.use('/api/admin', Admin);
+  app.use('/api/employee', Employee);
 };

@@ -146,29 +146,32 @@ module.exports = function (io) {
           );
 
           if (index !== -1) {
+            console.log('+' + conn.user.jid.split('@')[0]);
+            io.to('+' + conn.user.jid.split('@')[0]).emit('disconnected', {
+              message: 'Disconnected from WhatsApp: ' + reason,
+              currentConnRef: currentConnRef,
+            });
             connectedUsers.splice(index, 1);
           }
-
-          io.to(socket.id).emit('disconnected', {
-            message: 'Disconnected from WhatsApp: ' + reason,
-            currentConnRef: currentConnRef,
-          });
         });
       }
       connectToWhatsApp().catch((err) => {
-        io.to(socket.id).emit('no-qr', null);
+        const error = new Error(err);
+        console.log(error);
+        if (!error.toString().includes('Too Many Requests')) {
+          io.to(socket.id).emit('no-qr', null);
 
-        const index = connectedUsers.findIndex(
-          (user) => user.mobileNumber === getCurrentUser(socket.id).room
-        );
+          const index = connectedUsers.findIndex(
+            (user) => user.mobileNumber === getCurrentUser(socket.id).room
+          );
 
-        io.to(socket.id).emit('disconnected', {
-          message: 'Disconnected from WhatsApp: ' + err,
-          currentConnRef: currentConnRef,
-        });
-
-        if (index !== -1) {
-          connectedUsers.splice(index, 1);
+          if (index !== -1) {
+            io.to('+' + conn.user.jid.split('@')[0]).emit('disconnected', {
+              message: 'Disconnected from WhatsApp: ' + err,
+              currentConnRef: currentConnRef,
+            });
+            connectedUsers.splice(index, 1);
+          }
         }
       });
     });
@@ -246,7 +249,6 @@ module.exports = function (io) {
           status: 'success',
           currentConnRef: connectedUsers[index]['currentConnRef'],
         });
-        console.log(connectedUsers[index].chats.length);
         io.to(socket.id).emit('chats-received', connectedUsers[index].chats);
       }
 

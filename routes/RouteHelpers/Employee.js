@@ -66,7 +66,7 @@ const validateEmployeeUpdate = (data) => {
     firstName: Joi.string().optional(),
     lastName: Joi.string().allow('').optional(),
     designation: Joi.string().optional(),
-    status: Joi.string().valid('Active', 'Blocked').optional(),
+    status: Joi.string().valid('Active', 'Blocked', 'Not-Verified').optional(),
     mobileNumber: Joi.string().optional(),
     joiningDate: Joi.date().optional(),
   });
@@ -80,7 +80,7 @@ const validateEmployeeAccessUpdate = (data) => {
     firstName: Joi.string().required(),
     lastName: Joi.string().allow('').optional(),
     designation: Joi.string().required(),
-    status: Joi.string().valid('Active', 'Blocked').required(),
+    status: Joi.string().valid('Active', 'Blocked', 'Not-Verified').required(),
     mobileNumber: Joi.string().required(),
     joiningDate: Joi.date().required(),
     email: Joi.string()

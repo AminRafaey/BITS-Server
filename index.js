@@ -39,7 +39,7 @@ const port = process.env.PORT || config.get('port');
 server.listen(port, () => console.log(`Listening on port ${port}...`));
 
 process.on('uncaughtException', function (err, req, res, next) {
-  console.log('Node Server startup Error');
+  console.log('Node Server startup Error', err);
 });
 
 module.exports = server;

@@ -14,7 +14,7 @@ module.exports = function (req, res, next) {
 
     next();
   } catch (ex) {
-    res.status(500).send({
+    res.status(401).send({
       field: { message: 'Unauthorized Access', name: 'Unauthorized' },
     });
   }

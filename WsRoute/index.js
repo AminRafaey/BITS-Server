@@ -25,7 +25,7 @@ module.exports = function (io) {
     socket.personal = {};
     socket.personal.isChatsSent = false;
     socket.personal.isContactsSent = false;
-    socket.on('get-qr', (currentConnRef) => {
+    socket.on('get-qr', ({ currentConnRef, adminMobileNumber }) => {
       async function connectToWhatsApp() {
         const conn = new WAConnection();
 
@@ -39,32 +39,34 @@ module.exports = function (io) {
         });
 
         conn.on('chats-received', () => {
-          if (!socket.personal.isChatsSent) {
-            io.to(socket.id).emit('chats-received', conn.chats);
-            const mobileNumber = '+' + conn.user.jid.split('@')[0];
-            const index = connectedUsers.findIndex(
-              (user) => user.mobileNumber === mobileNumber
-            );
+          if ('+' + conn.user.jid.split('@')[0] === adminMobileNumber) {
+            if (!socket.personal.isChatsSent) {
+              io.to(socket.id).emit('chats-received', conn.chats);
+              const mobileNumber = '+' + conn.user.jid.split('@')[0];
+              const index = connectedUsers.findIndex(
+                (user) => user.mobileNumber === mobileNumber
+              );
 
-            if (index === -1) {
-              connectedUsers.push({
-                ...conn.user,
-                mobileNumber: mobileNumber,
-                connectedAt: new Date(),
-                chats: conn.chats,
-                currentConnRef: currentConnRef,
-                conn: conn,
-              });
+              if (index === -1) {
+                connectedUsers.push({
+                  ...conn.user,
+                  mobileNumber: mobileNumber,
+                  connectedAt: new Date(),
+                  chats: conn.chats,
+                  currentConnRef: currentConnRef,
+                  conn: conn,
+                });
+              } else {
+                connectedUsers[index] = {
+                  ...connectedUsers[index],
+                  chats: conn.chats,
+                  conn: conn,
+                };
+              }
+              socket.personal.isChatsSent = true;
             } else {
-              connectedUsers[index] = {
-                ...connectedUsers[index],
-                chats: conn.chats,
-                conn: conn,
-              };
+              io.to(socket.id).emit('chats-received', []);
             }
-            socket.personal.isChatsSent = true;
-          } else {
-            io.to(socket.id).emit('chats-received', []);
           }
         });
 
@@ -95,6 +97,12 @@ module.exports = function (io) {
         });
 
         conn.on('open', async () => {
+          if ('+' + conn.user.jid.split('@')[0] !== adminMobileNumber) {
+            io.to(socket.id).emit('wrong-mobile-number', {
+              currentConnRef: currentConnRef,
+            });
+            return;
+          }
           // await Customer.updateOne({
           //   name: 'Amin',
           //   ...conn.base64EncodedAuthInfo(),
@@ -146,7 +154,6 @@ module.exports = function (io) {
           );
 
           if (index !== -1) {
-            console.log('+' + conn.user.jid.split('@')[0]);
             io.to('+' + conn.user.jid.split('@')[0]).emit('disconnected', {
               message: 'Disconnected from WhatsApp: ' + reason,
               currentConnRef: currentConnRef,
@@ -157,7 +164,6 @@ module.exports = function (io) {
       }
       connectToWhatsApp().catch((err) => {
         const error = new Error(err);
-        console.log(error);
         if (!error.toString().includes('Too Many Requests')) {
           io.to(socket.id).emit('no-qr', null);
 
